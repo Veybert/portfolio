@@ -673,7 +673,10 @@
     const wait = next ? (next.delay - l.delay || 40) : 0;
     setTimeout(renderNext, Math.max(40, wait));
   }
-
+const HTB_USER_ID   = "1402243";  // ton ID dans l'URL de ton profil HTB
+const HTB_APP_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI1IiwianRpIjoiY2IxNDM5NzI1MDgwNGRjMzAxZjA3ZGM3ZmNkMjYzZTNjZjhhMDY1NWMyNjgyYWM1MmI0YzY1YWI1ZmQwZjY3NjYzMDdjMWRiNzkxMTU0ZmYiLCJpYXQiOjE3ODE2ODg1OTQuMjcxOTQzLCJuYmYiOjE3ODE2ODg1OTQuMjcxOTQ2LCJleHAiOjE4MTMyMjQ1OTQuMjY2NjM4LCJzdWIiOiIxNDAyMjQzIiwic2NvcGVzIjpbXX0.wRc0NaJbH4hcxdliE29nY5tuulW6EIVE58pEFKXZuwFOUhCnUOwjmzZfyrheQKuSnc14LcklGlp0xdxeV0LhdgeKTBlz0WHps7aL90wPjDkG0yxPTwFsf7aJevpzkRpDytoRU8F-oDSI1x3HRf1QcHDliHPtCl8iRuazypGH2-ayQFruOv_XRc5WmU8kVe0Qj1wyhP_SaG8uRxvgvY1-vk2vYyi0_E-cYtlFbIPAIlIDWH2l2ErnAcNIeq7nZyQggTmurofqW9v8L0qXI-2WBCUH2R2g2g8NzDYindeVhwB6JgiWXfiSC_DeoKd4MAzrif6DZi545338cXIOfM_NB28K0CHI2N_BIzSRQhOhibTM7xtuueeTfSGSEnjfZZrgObxSWdeNdn0oN0fcXllYRypSu2ujNhUL61OxuY2wEg3qRE1O4IwdY8HtQy4yPmWEiPJW_vlVzMQVT-dtjZ8UTDjIcdKQli4xIcfF-M5vKXTw9DEf2nmVqUHfyiqjf0D22ymtj3yrCEL4xjnJCxSY70mwL3aUfA5QqXnm9LzJUeAC7LVke1i1nj7ahgjBgpJ_AeHXYEfHM3PqH7fWzh2z1IQKJvyWgxkL_JJoMaSeHlNFycAtEOakVk5bhfQvRbmrOAmQHrYz2gaWZg_QdoARblCHfekLbzUWgTbjY7LMyTk
+";        // optionnel (voir ci-dessous)
+const HTB_FALLBACK  = { rank: "Hacker", userOwns: 12, ... }; // tes vraies stats
   setTimeout(renderNext, 400);
 </script>
 </body>
