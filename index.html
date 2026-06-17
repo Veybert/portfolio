@@ -378,53 +378,6 @@
 <div class="divider"></div>
 
 <!-- ABOUT -->
-   <div>
-    <div class="section-label">// stats live</div>
-    <h2>HackTheBox</h2>
-
-    <div class="htb-widget" id="htb-widget">
-      <div class="htb-header">
-        <div class="htb-logo">HTB</div>
-        <span class="htb-title">bertrand-vey</span>
-        <div class="htb-status">
-          <div class="htb-dot" id="htb-dot"></div>
-          <span id="htb-status-txt">chargement…</span>
-        </div>
-      </div>
-
-      <div class="htb-body">
-        <div class="htb-stat">
-          <div class="htb-stat-val loading" id="htb-rank">—</div>
-          <div class="htb-stat-label">Rang</div>
-        </div>
-        <div class="htb-stat">
-          <div class="htb-stat-val loading" id="htb-user-owns">—</div>
-          <div class="htb-stat-label">User owns</div>
-        </div>
-        <div class="htb-stat">
-          <div class="htb-stat-val loading" id="htb-root-owns">—</div>
-          <div class="htb-stat-label">Root owns</div>
-        </div>
-        <div class="htb-stat">
-          <div class="htb-stat-val loading" id="htb-points">—</div>
-          <div class="htb-stat-label">Points</div>
-        </div>
-      </div>
-
-      <div class="htb-footer">
-        <span id="htb-rank-label">—</span>
-        <div class="htb-rank-bar-wrap">
-          <div class="htb-rank-bar" id="htb-rank-bar" style="width:0%"></div>
-        </div>
-        <span id="htb-next-rank">→ —</span>
-      </div>
-
-      <div class="htb-error-msg" id="htb-error">
-        ⚠ API HTB indisponible (CORS) — stats mises à jour manuellement.
-        Voir <a href="https://app.hackthebox.com/users/VOTRE_ID" target="_blank" style="color:#fca5a5">votre profil HTB</a>.
-      </div>
-    </div>
-  </div>
 <section id="about">
   <div class="section-label">// whois</div>
   <h2>À propos</h2>
@@ -720,6 +673,7 @@
     const wait = next ? (next.delay - l.delay || 40) : 0;
     setTimeout(renderNext, Math.max(40, wait));
   }
+
   setTimeout(renderNext, 400);
 </script>
 </body>
