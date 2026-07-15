@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Procédure · Déploiement MSI via GPO — Bertrand VEY</title>
-  <meta name="description" content="Déploiement silencieux d'un logiciel via GPO (fichier MSI) dans un domaine Active Directory." />
+  <title>Procédure · FailOver sur PfSense</title>
+  <meta name="description" content="Explication du FailOver." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -167,88 +167,88 @@
   <span class="sep">/</span>
   <a href="../index.html#procedures">procédures</a>
   <span class="sep">/</span>
-  <span class="current">deploiement-msi-gpo</span>
+  <span class="current">procédure</span>
 </nav>
 
 <div class="page">
 
   <div class="box-header">
     <div class="box-top">
-      <span class="badge badge-category blue">Active Directory</span>
-      <span class="badge badge-env">Domaine perrier.local</span>
+      <span class="badge badge-category blue">Firewall</span>
     </div>
     <div class="box-title">Déploiement silencieux d'un logiciel (MSI) via GPO</div>
-    <div class="box-desc">Distribuer automatiquement un logiciel (fichier .msi) sur un ensemble de postes du domaine, sans intervention utilisateur, via une stratégie de groupe dédiée.</div>
+    <div class="box-desc">Utiliser le failover sur Pfsense.</div>
     <div class="box-meta">
-      <span><strong>Outils :</strong> GPMC, Group Policy Objects</span>
+      <span><strong>Outils :</strong>Pfsense</span>
       <span><strong>Durée estimée :</strong> 20–30 min</span>
       <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
     </div>
     <div class="tag-list">
-      <span class="tag">GPO</span>
-      <span class="tag">Déploiement logiciel</span>
-      <span class="tag">Active Directory</span>
+      <span class="tag">Firewall</span>
+      <span class="tag">NAT</span>
     </div>
   </div>
 
   <div class="toc">
     <div class="toc-title">Sommaire</div>
     <ol>
-      <li><a href="#contexte">Contexte & objectif</a></li>
       <li><a href="#prerequis">Prérequis</a></li>
-      <li><a href="#procedure">Procédure</a></li>
-      <li><a href="#verification">Vérification</a></li>
-      <li><a href="#retour">Points d'attention</a></li>
+      <li><a href="#contexte">Contexte</a></li>
+      <li><a href="#Passerelle">Configuration du groupe de passerelle</a></li>
+      <li><a href="#NAT">Configuration du NAT</a></li>
+      <li><a href="#test">Test de la configuration</a></li>
     </ol>
   </div>
 
-  <div class="wp-section" id="contexte">
-    <h2><span class="step-num">1</span> Contexte & objectif</h2>
-    <p>Besoin de déployer un logiciel de manière homogène sur un groupe de postes (ex. un agent de sécurité) sans passer poste par poste, en s'appuyant sur l'infrastructure Active Directory déjà en place.</p>
-
-    <div class="callout info">
-      <span class="callout-icon">ℹ</span>
-      <div>Le déploiement via GPO nécessite un fichier .msi (l'installation "assignée" ne fonctionne pas avec un .exe sans wrapper).</div>
-    </div>
-  </div>
-
   <div class="wp-section" id="prerequis">
-    <h2><span class="step-num">2</span> Prérequis</h2>
+    <h2><span class="step-num">1</span>Prérequis</h2>
+    <p>Pour cet exercice, nous aurons besoin d’un Pare-feu Pfsense et d’un client dans un réseau local interne virtualisé avec Hyper-V.</p>
+
+  <div class="wp-section" id="Contexte">
+    <h2><span class="step-num">2</span>Contexte</h2>
+   <p>**Le failover, ou basculement** est un mode de fonctionnement de **secours** qui consiste à basculer automatiquement sur une base de données, un serveur ou un réseau placé en attente **si le système principal tombe en panne** ou est arrêté le temps d'une maintenance. Le failover est une fonction extrêmement importante sur les systèmes critiques qui doivent rester accessibles à chaque instant. La fonctionnalité de failover redirige de manière transparente toutes les requêtes au système injoignable vers le système de secours, lequel imite l'environnement du système initial.
+
+Ici nous allons configurer le basculement et **simuler la coupure d’un des liens externes.** Les interfaces externes correspondent à 2 réseaux externes différents au sein d’une infrastructure pédagogique.</p>
+
+  <div class="wp-section" id="passerelle">
+    <h2><span class="step-num">3</span>Configuration du groupe de passerelle</h2>
+    
+    <p>Il est nécessaire dans un premier temps que le Pare-Feu possède **3 interfaces :** 
     <ul>
-      <li>Droits d'administration sur la GPMC (Group Policy Management Console).</li>
-      <li>Fichier .msi accessible depuis un partage réseau lisible par les ordinateurs cibles (ex. \\srv\partage$).</li>
-      <li>Une OU (unité d'organisation) regroupant les postes concernés.</li>
+      <li>2 externes en **DHCP**</li>
+      <li>1 interne avec une adresse **IPV4 fixe**</li>
     </ul>
+ <!-- insérer images -->     
 
-    <div class="callout warn">
-      <span class="callout-icon">⚠</span>
-      <div>Tester d'abord la GPO sur une OU de test avant de l'appliquer à la production.</div>
+<div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>Il se peut qu’une ou plusieurs interfaces soient désactivées. Cliquez sur “ Enable interface “ sur l’interface en question.</div>
     </div>
-  </div>
+    
+    <p>Ensuite, se rendre dans System → Routing : </p>
+    <p>Puis créer un nouveau groupe dans Gateway groups : </p>
 
-  <div class="wp-section" id="procedure">
-    <h2><span class="step-num">3</span> Procédure</h2>
+    <p>Il faut obligatoirement :
 
-    <h3>Étape 1 — Créer la GPO</h3>
-    <p>Dans la GPMC, clic droit sur l'OU cible → <em>Créer un objet GPO dans ce domaine, et le lier ici</em>. Nommer la GPO clairement (ex. <code>MSI_deploiement_logiciel</code>).</p>
+1. Attribué un **nom significatif au groupe de passerelle** 
+2. Définir **la priorité de la passerelle**. La valeur va de **1** à **5**. La plus petite valeur aura la **priorité la plus haute**.  
+    
+    La valeur **Jamais** permet d’exclure la passerelle du groupe.
+    
+3. **Le niveau de déclenchement** définit comment la passerelle gèrera différents évènements :
+    - **Member Down** : Lorsque le lien internet est rompu ou inaccessible.
+    - **Packet Loss ou Perte de paquets :** Selon un seuil d’alerte inférieur définit dans les paramètres avancés.
+    - **High Latency ou Latence élevée :** Selon un seuil d’alerte inférieur définit dans les paramètres avancés.
+    - **Packet Loss or High Latency ou Perte de paquet ou la Latence élevée :** Mode hybride
 
-    <h3>Étape 2 — Configurer l'installation logicielle</h3>
-    <p>Éditer la GPO → <em>Configuration ordinateur → Stratégies → Paramètres du logiciel → Installation de logiciel</em>. Clic droit → <em>Nouveau → Package</em>, puis sélectionner le fichier .msi via son chemin UNC réseau.</p>
+Nous allons configurer le groupe de passerelle tel quel :</p>
 
-    <div class="code-block">
-      <div class="code-bar">
-        <span class="lang">texte</span>
-        <button class="copy-btn" onclick="copyCode(this)">copier</button>
-      </div>
-<pre><span class="hl-comment"># Chemin réseau à utiliser dans l'assistant (UNC obligatoire, pas de lettre de lecteur)</span>
-\\srv-partage\logiciels$\monlogiciel\package.msi</pre>
-    </div>
-
-    <p>Choisir la méthode <strong>Assigné</strong> pour une installation automatique au démarrage de la machine, sans action utilisateur.</p>
+  <p>Vous devriez avoir ce résultat après avoir sauvegardé :</p>
+  <p>Il faut maintenant renseigner ce groupe de passerelle dans le menu System → Routing :</p>
 
     <div class="screenshot">
-      <div class="screenshot-bar">assistant d'installation logicielle</div>
-      <div class="screenshot-placeholder">[ Capture à insérer depuis Notion ]</div>
+      <div class="screenshot-bar">capture</div>
+      <div class="screenshot-placeholder">[ Capture à insérer  ]</div>
     </div>
 
     <h3>Étape 3 — Lier et forcer l'application</h3>
@@ -265,30 +265,29 @@
     </div>
   </div>
 
-  <div class="wp-section" id="verification">
-    <h2><span class="step-num">4</span> Vérification</h2>
-    <p>Après redémarrage du poste de test, contrôler que le logiciel est bien installé.</p>
+  <div class="wp-section" id="NAT">
+    <h2><span class="step-num">4</span>Configuration du NAT</h2>
+    <p>Dans la section Firewall → NAT → Outbound, choisir le mode manuel puis laisser apparaitre les adresses concernant votre réseau local interne :.</p>
 
-    <div class="result-section">
-      <div class="result-label">// résultat attendu</div>
-      <div class="result-value">Le logiciel apparaît dans "Applications installées" et le journal d'événements (Applications and Services Logs → Group Policy) ne montre aucune erreur de déploiement.</div>
+    <p>Les règles seront également créées automatiquement.</p>
+
+  <div class="wp-section" id="test">
+    <h2><span class="step-num">5</span>Test de la configuration du FailOver</h2>
+    <div class="takeaways">
+        <span class="takeaway-icon">→</span>
+        <div>Depuis un client, on vient effectuer un **tracert vers** **8.8.8.8** :
+
+Ici les **2 interfaces sont activées** :.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>On vient maintenant débrancher la carte principale puis on effectue un tracert vers 1.1.1.1 pour voir si la deuxième interface externe prend le relai :</div>
+      </div>
     </div>
   </div>
-
-  <div class="wp-section" id="retour">
-    <h2><span class="step-num">5</span> Points d'attention & retour d'expérience</h2>
-    <div class="takeaways">
-      <div class="takeaway">
+    <div class="takeaway">
         <span class="takeaway-icon">→</span>
-        <div>Toujours utiliser un chemin UNC (jamais une lettre de lecteur mappée) : le compte "SYSTEM" de l'ordinateur n'a pas accès aux lecteurs réseau de l'utilisateur.</div>
-      </div>
-      <div class="takeaway">
-        <span class="takeaway-icon">→</span>
-        <div>Vérifier les droits NTFS/partage sur le dossier réseau : le groupe "Ordinateurs du domaine" doit avoir un accès en lecture.</div>
-      </div>
-      <div class="takeaway">
-        <span class="takeaway-icon">→</span>
-        <div>Un déploiement "assigné" au niveau ordinateur nécessite un redémarrage ; au niveau utilisateur, une reconnexion suffit.</div>
+        <div>On voit bien que la passerelle est différente. Elle correspond au second réseau pédagogique de la carte EXT2. Ceci montre bien que le basculement a fonctionné.</div>
       </div>
     </div>
   </div>
