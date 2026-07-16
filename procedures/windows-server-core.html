@@ -264,7 +264,7 @@
 <span class="hl-cmd">Get-DnsClientServerAddress</span> <span class="hl-flag">-InterfaceIndex</span> 6
 
 <span class="hl-comment"># Ajouter le suffixe DNS</span>
-<span class="hl-cmd">Set-DnsClient</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-ConnectionSpecificSuffix</span> vey.lan</pre>
+<span class="hl-cmd">Set-DnsClient</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-ConnectionSpecificSuffix</span> veybert.lan</pre>
     </div>
 
     <p>Assigner une adresse IP sur l'interface, puis redéfinir la passerelle :</p>
@@ -303,8 +303,8 @@
     <div class="code-block">
       <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
 <pre><span class="hl-var">$CreateDnsDelegation</span> = $false <span class="hl-comment"># Zone de délégation</span>
-<span class="hl-var">$DomainName</span> = <span class="hl-str">"vey.lan"</span> <span class="hl-comment"># Nom de domaine</span>
-<span class="hl-var">$NetbiosName</span> = <span class="hl-str">"VEY"</span> <span class="hl-comment"># Nom NetBios</span>
+<span class="hl-var">$DomainName</span> = <span class="hl-str">"veybert.lan"</span> <span class="hl-comment"># Nom de domaine</span>
+<span class="hl-var">$NetbiosName</span> = <span class="hl-str">"VEYBERT"</span> <span class="hl-comment"># Nom NetBios</span>
 <span class="hl-var">$NTDSPath</span> = <span class="hl-str">"C:\Windows\NTDS"</span>
 <span class="hl-var">$LogPath</span> = <span class="hl-str">"C:\Windows\NTDS"</span>
 <span class="hl-var">$SysvolPath</span> = <span class="hl-str">"C:\Windows\SYSVOL"</span>
