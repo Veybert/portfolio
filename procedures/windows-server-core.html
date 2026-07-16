@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procédure · Administrer Windows Server Core — Bertrand VEY</title>
+  <meta name="description" content="Configuration réseau, création d'un Active Directory et administration à distance d'un serveur Windows Server en mode Core." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+    .box-header {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.8rem 2rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-category.blue { background: rgba(96,165,250,0.15); color: #93c5fd; }
+    .badge-env { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc { color: var(--muted); font-size: 0.9rem; max-width: 560px; }
+    .box-meta {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      color: #a78bfa; border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: #a78bfa; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section h4 {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+      color: var(--muted); margin: 1rem 0 0.4rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem; transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; color: var(--text); margin: 0;
+    }
+    .hl-cmd { color: #00ff9d; }
+    .hl-flag { color: #60a5fa; }
+    .hl-str { color: #fbbf24; }
+    .hl-comment { color: #475569; }
+    .hl-ip { color: #a78bfa; }
+    .screenshot {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .screenshot img { width: 100%; display: block; }
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem; font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.tip { background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2); color: var(--green); }
+    .result-section {
+      background: var(--surface); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 1.8rem; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(124,58,237,0.05);
+    }
+    .result-label { font-family: var(--font-mono); font-size: 0.72rem; color: #a78bfa; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .result-value { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); }
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.9rem; color: #94a3b8; }
+    .takeaway-icon { color: var(--green); font-family: var(--font-mono); flex-shrink: 0; }
+    .nav-writeups {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; }
+    .nav-writeups a:hover { color: var(--green); }
+    footer {
+      border-top: 1px solid var(--border); text-align: center; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">~/bertrand-vey</a>
+  <span class="sep">/</span>
+  <a href="../index.html#procedures">procédures</a>
+  <span class="sep">/</span>
+  <span class="current">windows-server-core</span>
+</nav>
+
+<div class="page">
+
+  <div class="box-header">
+    <div class="box-top">
+      <span class="badge badge-category blue">Active Directory</span>
+      <span class="badge badge-env">Labo pédagogique</span>
+    </div>
+    <div class="box-title">Administrer Windows Server Core</div>
+    <div class="box-desc">Configuration réseau, création d'un Active Directory et administration à distance (RDP, OpenSSH, RSAT) d'un serveur Windows Server installé sans interface graphique.</div>
+    <div class="box-meta">
+      <span><strong>Outils :</strong> PowerShell, Active Directory, RSAT, OpenSSH</span>
+      <span><strong>Durée estimée :</strong> 45–60 min</span>
+      <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
+    </div>
+    <div class="tag-list">
+      <span class="tag">Windows Server Core</span>
+      <span class="tag">Active Directory</span>
+      <span class="tag">PowerShell</span>
+      <span class="tag">Administration à distance</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Sommaire</div>
+    <ol>
+      <li><a href="#contexte">Contexte & objectif</a></li>
+      <li><a href="#prerequis">Prérequis</a></li>
+      <li><a href="#procedure">Procédure</a></li>
+      <li><a href="#verification">Vérification</a></li>
+      <li><a href="#retour">Points d'attention</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. CONTEXTE -->
+  <div class="wp-section" id="contexte">
+    <h2><span class="step-num">1</span> Contexte & objectif</h2>
+    <p>Windows Server Core est une installation minimale de Windows Server, sans interface graphique, administrable uniquement en ligne de commande PowerShell. Ce mode réduit la surface d'attaque et la consommation de ressources par rapport à une installation avec expérience de bureau.</p>
+    <p>L'objectif ici est de configurer le réseau d'un serveur Core fraîchement installé, d'y créer un premier contrôleur de domaine Active Directory, puis de mettre en place plusieurs méthodes d'administration à distance (RDP, SSH, RSAT).</p>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>L'installation elle-même n'est pas couverte ici : lors du setup Windows, il suffit de sélectionner « Windows Server sans expérience de bureau » pour obtenir un serveur exclusivement en ligne de commande.</div>
+    </div>
+  </div>
+
+  <!-- 2. PRÉREQUIS -->
+  <div class="wp-section" id="prerequis">
+    <h2><span class="step-num">2</span> Prérequis</h2>
+    <ul>
+      <li>Un serveur <strong>Windows Server Core</strong> déjà installé.</li>
+      <li>Un accès administrateur local sur ce serveur.</li>
+      <li>Un poste client pour l'administration à distance (RSAT).</li>
+    </ul>
+  </div>
+
+  <!-- 3. PROCÉDURE -->
+  <div class="wp-section" id="procedure">
+    <h2><span class="step-num">3</span> Procédure</h2>
+
+    <h3>Étape 1 — Paramètres réseau</h3>
+
+    <h4>Attribuer un nom au serveur</h4>
+    <p>Pour l'identifier facilement, il est nécessaire de le renommer :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">Rename-Computer</span> <span class="hl-flag">-NewName</span> <span class="hl-str">"nouveau_nom"</span></pre>
+    </div>
+
+    <h4>Configurer l'interface réseau</h4>
+    <p>Désactiver l'IPv6 pour éviter des problèmes de compatibilité :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Désactiver IPv6</span>
+<span class="hl-cmd">Disable-NetAdapterBinding</span> <span class="hl-flag">-Name</span> <span class="hl-str">"Adapter Name"</span> <span class="hl-flag">-ComponentID</span> ms_tcpip6</pre>
+    </div>
+
+    <p>Supprimer l'adresse déjà attribuée (le plus souvent une adresse APIPA) sur l'interface LAN. Afficher d'abord l'index de l'interface :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Affiche l'index de l'interface</span>
+<span class="hl-cmd">Get-NetAdapter</span>
+
+<span class="hl-comment"># Supprime l'adresse IP sur l'interface</span>
+<span class="hl-cmd">Remove-NetIPAddress</span> <span class="hl-flag">–InterfaceIndex</span> 6
+<span class="hl-comment"># Appuyer sur [T] pour accepter</span></pre>
+    </div>
+
+    <p>Désactiver le DHCP sur l'interface :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">Set-NetIpInterface</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-DHCP</span> Disabled</pre>
+    </div>
+
+    <p>Attribuer un DNS au serveur :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">Set-DNSClientServerAddress</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-ServerAddresses</span> <span class="hl-ip">8.8.8.8</span>
+
+<span class="hl-comment"># Vérifier la configuration DNS</span>
+<span class="hl-cmd">Get-DnsClientServerAddress</span> <span class="hl-flag">-InterfaceIndex</span> 6
+
+<span class="hl-comment"># Ajouter le suffixe DNS</span>
+<span class="hl-cmd">Set-DnsClient</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-ConnectionSpecificSuffix</span> vey.lan</pre>
+    </div>
+
+    <p>Assigner une adresse IP sur l'interface, puis redéfinir la passerelle :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">New-netipAddress</span> <span class="hl-flag">-InterfaceIndex</span> 6 <span class="hl-flag">-IpAddress</span> @ip <span class="hl-flag">-PrefixLength</span> 16 <span class="hl-flag">-Defaultgateway</span> @ip_gateway
+
+<span class="hl-comment"># Supprimer une route</span>
+<span class="hl-cmd">route delete</span> 0.0.0.0 mask 0.0.0.0
+<span class="hl-comment"># Ajouter une passerelle</span>
+<span class="hl-cmd">route add</span> 0.0.0.0 mask 0.0.0.0 <span class="hl-ip">192.168.1.253</span></pre>
+    </div>
+
+    <p>Redémarrer le serveur pour appliquer les changements :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">Restart-Computer</span></pre>
+    </div>
+
+    <p>Désactiver le pare-feu sur le serveur, nécessaire pour joindre par la suite un contrôleur de domaine supplémentaire :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">Set-NetFirewallProfile</span> <span class="hl-flag">-Profile</span> Domain,Public,Private <span class="hl-flag">-Enabled</span> False
+<span class="hl-cmd">Set-NetFirewallProfile</span> <span class="hl-flag">-Profile</span> * <span class="hl-flag">-Enabled</span> False</pre>
+    </div>
+
+    <h3>Étape 2 — Création de l'Active Directory</h3>
+    <p>Installer le rôle AD Domain Services et un nouveau domaine, afin de pouvoir intégrer d'autres machines dans l'annuaire :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Installer le module AD</span>
+<span class="hl-cmd">Install-WindowsFeature</span> <span class="hl-flag">-name</span> AD-Domain-Services <span class="hl-flag">-IncludeManagementTools</span></pre>
+    </div>
+
+    <p>Définir les variables nécessaires à l'installation du premier contrôleur de domaine de la forêt :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-var">$CreateDnsDelegation</span> = $false <span class="hl-comment"># Zone de délégation</span>
+<span class="hl-var">$DomainName</span> = <span class="hl-str">"vey.lan"</span> <span class="hl-comment"># Nom de domaine</span>
+<span class="hl-var">$NetbiosName</span> = <span class="hl-str">"VEY"</span> <span class="hl-comment"># Nom NetBios</span>
+<span class="hl-var">$NTDSPath</span> = <span class="hl-str">"C:\Windows\NTDS"</span>
+<span class="hl-var">$LogPath</span> = <span class="hl-str">"C:\Windows\NTDS"</span>
+<span class="hl-var">$SysvolPath</span> = <span class="hl-str">"C:\Windows\SYSVOL"</span>
+<span class="hl-var">$DomainMode</span> = <span class="hl-str">"WinThreshold"</span> <span class="hl-comment"># Version de Windows Server</span>
+<span class="hl-var">$InstallDNS</span> = $true <span class="hl-comment"># Installer le rôle DNS</span>
+<span class="hl-var">$ForestMode</span> = <span class="hl-str">"WinThreshold"</span>
+<span class="hl-var">$NoRebootOnCompletion</span> = $false
+<span class="hl-var">$SafeModeClearPassword</span> = <span class="hl-str">"mot_de_passe"</span> <span class="hl-comment"># Mot de passe administrateur du mode restauration</span>
+<span class="hl-var">$SafeModeAdministratorPassword</span> = <span class="hl-cmd">ConvertTo-SecureString</span> $SafeModeClearPassword <span class="hl-flag">-AsPlaintext</span> <span class="hl-flag">-Force</span></pre>
+    </div>
+
+    <p>Une fois ces variables créées, installer le premier contrôleur de domaine de la forêt :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-var">$forest</span> = <span class="hl-cmd">Install-ADDSForest</span> <span class="hl-flag">-CreateDnsDelegation</span>:$CreateDnsDelegation `
+<span class="hl-flag">-DomainName</span> $DomainName `
+<span class="hl-flag">-DatabasePath</span> $NTDSPath `
+<span class="hl-flag">-DomainMode</span> $DomainMode `
+<span class="hl-flag">-DomainNetbiosName</span> $NetbiosName `
+<span class="hl-flag">-ForestMode</span> $ForestMode `
+<span class="hl-flag">-InstallDNS</span>:$InstallDNS `
+<span class="hl-flag">-LogPath</span> $LogPath `
+<span class="hl-flag">-NoRebootOnCompletion</span>:$NoRebootOnCompletion `
+<span class="hl-flag">-SysvolPath</span> $SysvolPath `
+<span class="hl-flag">-SafeModeAdministratorPassword</span> $SafeModeAdministratorPassword `
+<span class="hl-flag">-Force</span>:$true</pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div>En cas de problème avec le mot de passe du compte administrateur local, il peut être réinitialisé puis suivi d'un redémarrage :</div>
+    </div>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">cmd</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">net user</span> administrateur *
+<span class="hl-comment"># Invite de commande pour préciser un mot de passe</span>
+
+<span class="hl-cmd">Restart-computer</span></pre>
+    </div>
+
+    <h3>Étape 3 — Administration à distance</h3>
+    <p>Trois méthodes permettent d'administrer le serveur à distance.</p>
+
+    <h4>Sur le serveur — RDP (Bureau à distance)</h4>
+    <p>Permet de se connecter à distance via le protocole RDP, tout en restant en ligne de commande :</p>
+    <div class="screenshot">
+      <img src="img/wincore-01-rdp.png" alt="Connexion RDP en ligne de commande sur Windows Server Core" />
+    </div>
+
+    <h4>Sur le serveur — OpenSSH</h4>
+    <p>Permet d'administrer le serveur en SSH de façon sécurisée, toujours en ligne de commande. Installer le serveur OpenSSH puis ajuster sa configuration :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Installer le serveur SSH</span>
+<span class="hl-cmd">Add-WindowsCapability</span> <span class="hl-flag">-Online</span> <span class="hl-flag">-Name</span> OpenSSH.Server~~~~0.0.1.0
+
+<span class="hl-comment"># Démarrer le service</span>
+<span class="hl-cmd">Start-Service</span> sshd
+
+<span class="hl-comment"># Lancer le service au démarrage</span>
+<span class="hl-cmd">Set-Service</span> <span class="hl-flag">-Name</span> sshd <span class="hl-flag">-StartupType</span> <span class="hl-str">"Automatic"</span>
+
+<span class="hl-comment"># Se déplacer dans le dossier d'installation SSH</span>
+<span class="hl-cmd">cd</span> c:\ProgramData\ssh
+
+<span class="hl-comment"># Ouvrir le fichier de configuration SSH</span>
+<span class="hl-cmd">notepad</span> .\sshd_config
+
+<span class="hl-comment"># Décommenter la ligne "PasswordAuthentication yes"</span>
+<span class="hl-comment"># Ajouter sous la ligne "Subsystem ftp ..." :</span>
+<span class="hl-cmd">Subsystem</span> powershell c:/progra~1/powershell/7/pwsh.exe -sshs -NoLogo</pre>
+    </div>
+    <p>Depuis un poste client, se connecter en SSH via une console PowerShell :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">powershell</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">ssh</span> administrateur@ip_serveur</pre>
+    </div>
+    <p>Une fois connecté, on se retrouve en invite de commandes classique : il faut alors lancer la commande <code>powershell</code>.</p>
+
+    <h4>Sur le client — RSAT</h4>
+    <p>Les outils RSAT permettent d'administrer l'AD du serveur via une interface graphique, plus pratique à l'usage. Installer la fonctionnalité depuis <strong>Applications et fonctionnalités → Fonctionnalités facultatives → Ajouter une fonctionnalité → RSAT : Services de domaine Active Directory</strong>, puis installer les outils correspondant aux besoins :</p>
+    <div class="screenshot">
+      <img src="img/wincore-02-rsat-feature.png" alt="Installation de la fonctionnalité RSAT sur le client" />
+    </div>
+
+    <p>Sur le client, ouvrir le tableau de bord de gestion de serveur puis ajouter le serveur à gérer :</p>
+    <div class="screenshot">
+      <img src="img/wincore-03-tableau-bord-ajout-serveur.png" alt="Ajout d'un serveur dans le tableau de bord de gestion" />
+    </div>
+
+    <p>Renseigner le nom du serveur :</p>
+    <div class="screenshot">
+      <img src="img/wincore-04-nom-serveur.png" alt="Saisie du nom du serveur à ajouter" />
+    </div>
+  </div>
+
+  <!-- 4. VÉRIFICATION -->
+  <div class="wp-section" id="verification">
+    <h2><span class="step-num">4</span> Vérification</h2>
+    <div class="result-section">
+      <div class="result-label">// résultat attendu</div>
+      <div class="result-value">Le serveur apparaît dans le tableau de bord de gestion RSAT et peut désormais être administré graphiquement à distance depuis le client, en plus des accès RDP et SSH en ligne de commande.</div>
+    </div>
+  </div>
+
+  <!-- 5. POINTS D'ATTENTION -->
+  <div class="wp-section" id="retour">
+    <h2><span class="step-num">5</span> Points d'attention & retour d'expérience</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>L'adresse IP par défaut sur l'interface LAN est souvent une adresse APIPA (169.254.x.x) : bien vérifier l'index de l'interface avec <code>Get-NetAdapter</code> avant toute modification.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Le pare-feu doit être désactivé avant de joindre un contrôleur de domaine supplémentaire ; à réactiver ensuite en production, avec des règles adaptées.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Après une connexion SSH, on arrive en invite de commandes classique (cmd) et non en PowerShell : il faut taper <code>powershell</code> pour basculer.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-writeups">
+    <span></span>
+    <a href="../index.html#procedures">↑ Toutes les procédures</a>
+    <span></span>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/procedures/windows-server-core</span>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copié ✓';
+      setTimeout(() => btn.textContent = 'copier', 1800);
+    });
+  }
+</script>
+</body>
+</html>
