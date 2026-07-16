@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procédure · Failover sur pfSense — Bertrand VEY</title>
+  <meta name="description" content="Configuration d'un groupe de passerelles à haute disponibilité (failover) sur pfSense pour basculer automatiquement entre deux liens WAN." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+    .box-header {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.8rem 2rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-category.orange { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-env { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc { color: var(--muted); font-size: 0.9rem; max-width: 560px; }
+    .box-meta {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      color: #a78bfa; border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: #a78bfa; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem; transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; color: var(--text); margin: 0;
+    }
+    .hl-cmd { color: #00ff9d; }
+    .hl-flag { color: #60a5fa; }
+    .hl-str { color: #fbbf24; }
+    .hl-comment { color: #475569; }
+    .hl-ip { color: #a78bfa; }
+    .screenshot {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .screenshot-bar {
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .screenshot img { width: 100%; display: block; }
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem; font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.tip { background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2); color: var(--green); }
+    .result-section {
+      background: var(--surface); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 1.8rem; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(124,58,237,0.05);
+    }
+    .result-label { font-family: var(--font-mono); font-size: 0.72rem; color: #a78bfa; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .result-value { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); }
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.9rem; color: #94a3b8; }
+    .takeaway-icon { color: var(--green); font-family: var(--font-mono); flex-shrink: 0; }
+    .nav-writeups {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; }
+    .nav-writeups a:hover { color: var(--green); }
+    footer {
+      border-top: 1px solid var(--border); text-align: center; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">~/bertrand-vey</a>
+  <span class="sep">/</span>
+  <a href="../index.html#procedures">procédures</a>
+  <span class="sep">/</span>
+  <span class="current">failover-pfsense</span>
+</nav>
+
+<div class="page">
+
+  <div class="box-header">
+    <div class="box-top">
+      <span class="badge badge-category orange">Réseau</span>
+      <span class="badge badge-env">Labo pédagogique (Hyper-V)</span>
+    </div>
+    <div class="box-title">Failover sur pfSense</div>
+    <div class="box-desc">Configuration d'un groupe de passerelles à haute disponibilité sur un pare-feu pfSense, permettant de basculer automatiquement d'une liaison WAN vers une seconde en cas de coupure.</div>
+    <div class="box-meta">
+      <span><strong>Outils :</strong> pfSense, Hyper-V</span>
+      <span><strong>Durée estimée :</strong> 30–45 min</span>
+      <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
+    </div>
+    <div class="tag-list">
+      <span class="tag">pfSense</span>
+      <span class="tag">Failover</span>
+      <span class="tag">Haute disponibilité</span>
+      <span class="tag">Routage</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Sommaire</div>
+    <ol>
+      <li><a href="#contexte">Contexte & objectif</a></li>
+      <li><a href="#prerequis">Prérequis</a></li>
+      <li><a href="#procedure">Procédure</a></li>
+      <li><a href="#verification">Vérification</a></li>
+      <li><a href="#retour">Points d'attention</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. CONTEXTE -->
+  <div class="wp-section" id="contexte">
+    <h2><span class="step-num">1</span> Contexte & objectif</h2>
+    <p>Le failover, ou basculement, est un mode de fonctionnement de secours qui consiste à basculer automatiquement sur une base de données, un serveur ou un réseau placé en attente si le système principal tombe en panne ou est arrêté le temps d'une maintenance. Le failover est une fonction extrêmement importante sur les systèmes critiques qui doivent rester accessibles à chaque instant : il redirige de manière transparente toutes les requêtes du système injoignable vers le système de secours, lequel imite l'environnement du système initial.</p>
+    <p>Ici, l'objectif est de configurer le basculement et de simuler la coupure d'un des liens externes. Les deux interfaces externes correspondent à deux réseaux pédagogiques distincts au sein de l'infrastructure de labo.</p>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>Cette procédure s'appuie sur une configuration de base de pfSense déjà en place (voir la procédure « Pare-feu pfSense » pour l'installation initiale).</div>
+    </div>
+  </div>
+
+  <!-- 2. PRÉREQUIS -->
+  <div class="wp-section" id="prerequis">
+    <h2><span class="step-num">2</span> Prérequis</h2>
+    <ul>
+      <li>Un pare-feu <strong>pfSense</strong> déjà installé et configuré.</li>
+      <li>Un client dans un réseau local interne, virtualisé avec <strong>Hyper-V</strong>.</li>
+      <li>Deux interfaces WAN distinctes (2 réseaux externes différents).</li>
+    </ul>
+  </div>
+
+  <!-- 3. PROCÉDURE -->
+  <div class="wp-section" id="procedure">
+    <h2><span class="step-num">3</span> Procédure</h2>
+
+    <h3>Étape 1 — Préparer les interfaces</h3>
+    <p>Il est nécessaire dans un premier temps que le pare-feu possède 3 interfaces :</p>
+    <ul>
+      <li>2 externes en <strong>DHCP</strong>.</li>
+      <li>1 interne avec une adresse <strong>IPv4 fixe</strong>.</li>
+    </ul>
+
+    <div class="screenshot">
+      <img src="img/failover-01-interfaces.png" alt="Configuration des 3 interfaces pfSense" />
+    </div>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>Il se peut qu'une ou plusieurs interfaces soient désactivées. Cliquez sur « <strong>Enable interface</strong> » sur l'interface en question. Vous pouvez également la renommer pour la reconnaître plus facilement.</div>
+    </div>
+
+    <div class="screenshot">
+      <img src="img/failover-02-enable-interface.png" alt="Activation d'une interface pfSense" />
+    </div>
+
+    <h3>Étape 2 — Créer le groupe de passerelles</h3>
+    <p>Se rendre dans <strong>System → Routing</strong> :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-03-system-routing.png" alt="Menu System > Routing sur pfSense" />
+    </div>
+
+    <p>Puis créer un nouveau groupe dans <strong>Gateway groups</strong> :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-04-gateway-groups-new.png" alt="Création d'un nouveau groupe de passerelles" />
+    </div>
+
+    <p>Il faut obligatoirement :</p>
+    <ol>
+      <li>Attribuer un nom significatif au groupe de passerelle.</li>
+      <li>Définir la priorité de la passerelle. La valeur va de 1 à 5 : la plus petite valeur a la priorité la plus haute. La valeur <strong>Jamais</strong> permet d'exclure une passerelle du groupe.</li>
+      <li>Le niveau de déclenchement, qui définit comment la passerelle gère différents évènements :
+        <ul>
+          <li><strong>Member Down</strong> : lorsque le lien internet est rompu ou inaccessible.</li>
+          <li><strong>Packet Loss</strong> : selon un seuil d'alerte défini dans les paramètres avancés.</li>
+          <li><strong>High Latency</strong> : selon un seuil de latence défini dans les paramètres avancés.</li>
+          <li><strong>Packet Loss or High Latency</strong> : mode hybride combinant les deux critères.</li>
+        </ul>
+      </li>
+    </ol>
+
+    <p>Configuration retenue pour le groupe de passerelle :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-05-gateway-group-config.png" alt="Configuration détaillée du groupe de passerelles" />
+    </div>
+
+    <p>Résultat obtenu après sauvegarde :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-06-gateway-group-saved.png" alt="Groupe de passerelles créé et sauvegardé" />
+    </div>
+
+    <h3>Étape 3 — Appliquer le groupe de passerelles</h3>
+    <p>Il faut maintenant renseigner ce groupe de passerelle dans le menu <strong>System → Routing</strong> (la valeur par défaut est « Automatic ») :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-07-system-routing-gateway.png" alt="Application du groupe de passerelles dans System > Routing" />
+    </div>
+
+    <h3>Étape 4 — Configurer le NAT</h3>
+    <p>Dans la section <strong>Firewall → NAT → Outbound</strong>, choisir le mode manuel puis laisser apparaître les adresses concernant le réseau local interne. Les règles sont recréées automatiquement.</p>
+
+    <div class="screenshot">
+      <img src="img/failover-08-nat-outbound.png" alt="Configuration NAT Outbound en mode manuel" />
+    </div>
+  </div>
+
+  <!-- 4. VÉRIFICATION -->
+  <div class="wp-section" id="verification">
+    <h2><span class="step-num">4</span> Vérification</h2>
+    <p>Depuis un client, effectuer un <code>tracert</code> vers <strong>8.8.8.8</strong> avec les deux interfaces activées :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-09-tracert-2-interfaces.png" alt="Tracert avec les deux interfaces WAN actives" />
+    </div>
+
+    <p>Débrancher ensuite la carte principale, puis effectuer un <code>tracert</code> vers <strong>1.1.1.1</strong> pour vérifier que la seconde interface externe prend le relais :</p>
+
+    <div class="screenshot">
+      <img src="img/failover-10-tracert-failover.png" alt="Tracert après basculement sur la seconde interface WAN" />
+    </div>
+
+    <div class="result-section">
+      <div class="result-label">// résultat attendu</div>
+      <div class="result-value">La passerelle utilisée par le tracert change et correspond au second réseau pédagogique de la carte EXT2 : le basculement fonctionne, la coupure du lien principal est transparente pour le client.</div>
+    </div>
+  </div>
+
+  <!-- 5. POINTS D'ATTENTION -->
+  <div class="wp-section" id="retour">
+    <h2><span class="step-num">5</span> Points d'attention & retour d'expérience</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>La priorité (1 à 5) définit l'ordre de bascule : bien vérifier que la passerelle principale a la valeur la plus basse.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Le niveau de déclenchement « Member Down » suffit pour une simple coupure de lien ; les seuils de latence/perte de paquets demandent un réglage plus fin selon la qualité des liens WAN.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Penser à repasser le NAT Outbound en mode manuel dès qu'un groupe de passerelles est utilisé, sinon les règles générées automatiquement peuvent ne pas correspondre au bon WAN.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-writeups">
+    <span></span>
+    <a href="../index.html#procedures">↑ Toutes les procédures</a>
+    <span></span>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/procedures/failover-pfsense</span>
+</footer>
+
+</body>
+</html>
