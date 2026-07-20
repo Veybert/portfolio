@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procédure · Installation de GLPI — Bertrand VEY</title>
+  <meta name="description" content="Installation d'un serveur Linux, d'une pile LAMP, de GLPI et de son agent d'inventaire, avec sécurisation post-installation et mise en place d'HTTPS." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+    .box-header {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.8rem 2rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-category.green { background: rgba(0,255,157,0.12); color: var(--green); }
+    .badge-env { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc { color: var(--muted); font-size: 0.9rem; max-width: 560px; }
+    .box-meta {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      color: #a78bfa; border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: #a78bfa; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section h4 {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+      color: var(--muted); margin: 1rem 0 0.4rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+    .wp-section code { color: #a78bfa; font-family: var(--font-mono); font-size: 0.85em; }
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem; transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6; color: var(--text); margin: 0;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .hl-cmd { color: #00ff9d; }
+    .hl-flag { color: #60a5fa; }
+    .hl-str { color: #fbbf24; }
+    .hl-comment { color: #475569; }
+    .hl-ip { color: #a78bfa; }
+    .screenshot {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .screenshot img { width: 100%; display: block; }
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem; font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.tip { background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2); color: var(--green); }
+    .result-section {
+      background: var(--surface); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 1.8rem; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(124,58,237,0.05);
+    }
+    .result-label { font-family: var(--font-mono); font-size: 0.72rem; color: #a78bfa; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .result-value { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); }
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.9rem; color: #94a3b8; }
+    .takeaway-icon { color: var(--green); font-family: var(--font-mono); flex-shrink: 0; }
+    .nav-writeups {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; }
+    .nav-writeups a:hover { color: var(--green); }
+    footer {
+      border-top: 1px solid var(--border); text-align: center; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">~/bertrand-vey</a>
+  <span class="sep">/</span>
+  <a href="../index.html#procedures">procédures</a>
+  <span class="sep">/</span>
+  <span class="current">installation-glpi</span>
+</nav>
+
+<div class="page">
+
+  <div class="box-header">
+    <div class="box-top">
+      <span class="badge badge-category green">Systèmes / Applicatif</span>
+      <span class="badge badge-env">Debian · vey.lan</span>
+    </div>
+    <div class="box-title">Installation de GLPI</div>
+    <div class="box-desc">Déploiement d'un serveur GLPI sur Debian (pile LAMP), sécurisation post-installation, mise en place d'HTTPS, puis installation de l'agent d'inventaire côté serveur et côté client.</div>
+    <div class="box-meta">
+      <span><strong>Outils :</strong> Debian, Apache2, MariaDB, PHP, GLPI</span>
+      <span><strong>Durée estimée :</strong> 1h30 – 2h</span>
+      <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
+    </div>
+    <div class="tag-list">
+      <span class="tag">GLPI</span>
+      <span class="tag">LAMP</span>
+      <span class="tag">Linux</span>
+      <span class="tag">HTTPS</span>
+      <span class="tag">Inventaire</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Sommaire</div>
+    <ol>
+      <li><a href="#contexte">Contexte & objectif</a></li>
+      <li><a href="#prerequis">Prérequis</a></li>
+      <li><a href="#procedure">Procédure</a></li>
+      <li><a href="#verification">Vérification</a></li>
+      <li><a href="#retour">Points d'attention</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. CONTEXTE -->
+  <div class="wp-section" id="contexte">
+    <h2><span class="step-num">1</span> Contexte & objectif</h2>
+    <p><strong>GLPI</strong> (Gestion Libre de Parc Informatique) est une solution open source de gestion de parc informatique et de service desk (ITSM). Elle permet de centraliser l'inventaire du matériel, des logiciels, des tickets d'incidents et des demandes des utilisateurs.</p>
+    <p>L'objectif de cette procédure est de déployer GLPI depuis zéro sur un serveur Debian minimal (pile LAMP), de sécuriser l'installation, de basculer en HTTPS, puis de mettre en place l'agent d'inventaire automatique côté serveur et côté client.</p>
+  </div>
+
+  <!-- 2. PRÉREQUIS -->
+  <div class="wp-section" id="prerequis">
+    <h2><span class="step-num">2</span> Prérequis</h2>
+    <p>Ces valeurs sont indicatives et peuvent être ajustées selon le contexte :</p>
+    <ul>
+      <li>2 Go de RAM, 2 cœurs, 10 Go d'espace disque.</li>
+      <li>Nom de machine : <code>glpi</code> — Domaine : <code>vey.lan</code>.</li>
+      <li>IPv4 fixe : <code>172.26.1.53</code>.</li>
+      <li>Serveur SSH activé, utilitaires système usuels.</li>
+    </ul>
+
+    <p>Ajouter le nom d'hôte dans le fichier <code>hosts</code> du poste Windows utilisé pour l'administration :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">texte</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># C:\Windows\System32\drivers\etc\hosts</span>
+<span class="hl-comment"># Ouvrir avec le Bloc-notes en tant qu'administrateur pour pouvoir l'enregistrer</span>
+172.26.1.53 glpi.vey.lan</pre>
+    </div>
+
+    <div class="callout tip">
+      <span class="callout-icon">💡</span>
+      <div>Penser à faire des snapshots réguliers de la VM en cas d'erreur, pour éviter de tout recommencer depuis zéro.</div>
+    </div>
+  </div>
+
+  <!-- 3. PROCÉDURE -->
+  <div class="wp-section" id="procedure">
+    <h2><span class="step-num">3</span> Procédure</h2>
+
+    <h3>Étape 1 — Installation de Debian</h3>
+    <p>Schéma de partitionnement retenu (à adapter selon la taille du disque) :</p>
+    <ul>
+      <li><code>/</code> : 6 Go, primaire, indicateur d'amorçage présent (racine).</li>
+      <li><code>/var</code> : 3 Go, primaire (données variables).</li>
+      <li><code>swap</code> : 1,7 Go, primaire (partition d'échange mémoire).</li>
+    </ul>
+    <p>Au fil de l'installation : activer le serveur SSH, ne pas installer d'environnement de bureau (décocher GNOME), installer GRUB sur le disque principal.</p>
+
+    <p>Configurer ensuite l'adresse IP fixe :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Installer sudo (optionnel) ou se connecter en root</span>
+<span class="hl-cmd">apt-get install</span> sudo
+<span class="hl-cmd">su</span> -
+
+<span class="hl-cmd">nano</span> /etc/network/interfaces
+<span class="hl-comment"># Première interface</span>
+auto eth0
+allow-hotplug eth0
+iface eth0 inet static
+        address <span class="hl-ip">172.26.1.53</span>/23
+        gateway <span class="hl-ip">172.26.1.254</span> <span class="hl-comment"># Optionnel, si pare-feu dans l'infra</span>
+
+<span class="hl-comment"># Redémarrer le service réseau</span>
+<span class="hl-cmd">systemctl restart</span> networking.service
+<span class="hl-comment"># Si l'interface ne s'active pas</span>
+<span class="hl-cmd">ifup</span> eth0</pre>
+    </div>
+
+    <h3>Étape 2 — Installation de la pile LAMP</h3>
+
+    <h4>Apache2</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">sudo apt-get install</span> apache2 <span class="hl-flag">-y</span>
+<span class="hl-cmd">systemctl status</span> apache2
+<span class="hl-cmd">ss</span> <span class="hl-flag">-laputn</span> <span class="hl-comment"># Vérifier les ports d'écoute</span>
+<span class="hl-cmd">netstat</span> <span class="hl-flag">-antp</span>
+
+<span class="hl-comment"># Logs Apache</span>
+<span class="hl-cmd">cat</span> /var/log/apache2/access.log
+<span class="hl-cmd">cat</span> /var/log/apache2/error.log <span class="hl-comment"># Erreurs de redémarrage du service</span></pre>
+    </div>
+
+    <h4>MariaDB-Server</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">sudo apt-get install</span> mariadb-server <span class="hl-flag">-y</span>
+<span class="hl-cmd">systemctl status</span> mariadb</pre>
+    </div>
+
+    <h4>PHP</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">sudo apt-get install</span> php <span class="hl-flag">-y</span>
+<span class="hl-cmd">php</span> <span class="hl-flag">-v</span>
+
+<span class="hl-comment"># Page de test phpinfo (paramètre dangereux, à supprimer après le test)</span>
+<span class="hl-cmd">cd</span> /var/www/html/
+<span class="hl-cmd">nano</span> php.info
+<span class="hl-comment">&lt;?php phpinfo(); ?&gt;</span></pre>
+    </div>
+
+    <h4>PHP-MySQL</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">sudo apt-get install</span> php-mysql <span class="hl-flag">-y</span></pre>
+    </div>
+
+    <h3>Étape 3 — Installation de GLPI</h3>
+    <p>Récupérer la dernière version stable de GLPI :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Meilleure solution : récupérer la dernière version stable</span>
+<span class="hl-cmd">wget</span> https://github.com/glpi-project/glpi/releases/download/10.0.16/glpi-10.0.16.tgz
+
+<span class="hl-comment"># Décompresser l'archive</span>
+<span class="hl-cmd">tar</span> <span class="hl-flag">-xzf</span> glpi-10.0.16.tgz <span class="hl-flag">-C</span> /var/www/html/</pre>
+    </div>
+
+    <h4>Création de la base de données GLPI</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">sql</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">systemctl status</span> mariadb
+<span class="hl-cmd">mariadb</span>
+
+CREATE database glpi;
+CREATE user bertrand;
+GRANT ALL ON glpi.* TO <span class="hl-str">'bertrand'</span>@<span class="hl-str">'localhost'</span> IDENTIFIED BY <span class="hl-str">'********'</span> WITH GRANT OPTION;
+FLUSH PRIVILEGES;</pre>
+    </div>
+
+    <h4>Modification du fichier VHOST</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">cd</span> /etc/apache2/sites-available
+<span class="hl-cmd">cp</span> 000-default.conf 001-default.conf</pre>
+    </div>
+
+    <p>Configuration retenue pour l'hôte virtuel (port 80, nom de domaine <code>glpi.vey.lan</code>) :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">apache</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre>&lt;VirtualHost *:80&gt;
+        ServerName glpi.vey.lan
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/html/glpi/public
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+        &lt;Directory /var/www/html/glpi/public&gt;
+                Require all granted
+                RewriteEngine On
+                RewriteCond %{REQUEST_FILENAME} !-f
+                RewriteRule ^(.*)$ index.php [QSA,L]
+        &lt;/Directory&gt;
+&lt;/VirtualHost&gt;</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">a2enmod</span> rewrite
+<span class="hl-cmd">nano</span> /etc/hosts
+<span class="hl-comment"># Ajouter : 172.26.1.53 glpi.vey.lan</span>
+
+<span class="hl-cmd">a2ensite</span> 001-default.conf <span class="hl-comment"># Activer le site</span>
+<span class="hl-cmd">systemctl restart</span> apache2.service</pre>
+    </div>
+
+    <h4>Installation web de GLPI</h4>
+    <p>Accès en écriture temporaire nécessaire sur le dossier GLPI, puis installation des extensions PHP manquantes :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">chown</span> <span class="hl-flag">-R</span> www-data:www-data /var/www/html/glpi
+
+<span class="hl-cmd">sudo apt-get install</span> php-xml php-common php-json php-mysql php-mbstring php-curl php-gd php-intl php-zip php-bz2 php-imap php-apcu <span class="hl-flag">-y</span></pre>
+    </div>
+
+    <p>Lors de l'étape de connexion à la base de données pendant l'installation web :</p>
+    <ul>
+      <li>Serveur SQL : <code>localhost</code></li>
+      <li>Utilisateur : <code>bertrand</code></li>
+      <li>Mot de passe : celui défini à la création de l'utilisateur MariaDB</li>
+    </ul>
+
+    <h3>Étape 4 — Sécurisation post-installation</h3>
+
+    <h4>Configuration du dossier racine du serveur web</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">rm</span> /var/www/html/index.html
+<span class="hl-cmd">systemctl restart</span> apache2</pre>
+    </div>
+
+    <h4>Sécurisation des sessions</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">nano</span> /etc/php/8.2/apache2/php.ini
+<span class="hl-comment"># Ctrl+W puis rechercher : session.cookie_httponly</span>
+session.cookie_httponly = on
+
+<span class="hl-cmd">systemctl restart</span> apache2.service</pre>
+    </div>
+
+    <h4>Suppression du dossier d'installation</h4>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">cd</span> /var/www/html/glpi/install/
+<span class="hl-cmd">rm</span> install.php
+<span class="hl-cmd">systemctl restart</span> apache2</pre>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div>Modifier les mots de passe par défaut des comptes <code>glpi</code>, <code>post-only</code>, <code>tech</code> et <code>normal</code> depuis <strong>Administration → Utilisateurs → Mot de passe</strong>.</div>
+    </div>
+
+    <h3>Étape 5 — Mise en place d'HTTPS</h3>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Activer le module SSL</span>
+<span class="hl-cmd">a2enmod</span> ssl
+<span class="hl-cmd">systemctl restart</span> apache2.service
+
+<span class="hl-comment"># Créer un certificat autosigné</span>
+<span class="hl-cmd">cd</span> /etc/apache2/
+<span class="hl-cmd">mkdir</span> ssl
+<span class="hl-cmd">openssl req</span> <span class="hl-flag">-nodes -newkey</span> rsa:2048 <span class="hl-flag">-sha256 -keyout</span> /etc/apache2/ssl/glpi.key <span class="hl-flag">-out</span> /etc/apache2/ssl/glpi.crt
+<span class="hl-cmd">chmod</span> 600 /etc/apache2/ssl/*
+<span class="hl-comment"># Common Name renseigné : glpi.vey.lan</span></pre>
+    </div>
+
+    <p>Créer le second VHOST pour le port 443 :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">apache</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre>&lt;IfModule mod_ssl.c&gt;
+        &lt;VirtualHost *:443&gt;
+        ServerName glpi.vey.lan
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/html/glpi/public
+
+        &lt;Directory /var/www/html/glpi/public&gt;
+                Require all granted
+                RewriteEngine On
+                RewriteCond %{REQUEST_FILENAME} !-f
+                RewriteRule ^(.*)$ index.php [QSA,L]
+        &lt;/Directory&gt;
+
+        SSLEngine on
+        SSLCertificateFile /etc/apache2/ssl/glpi.crt
+        SSLCertificateKeyFile /etc/apache2/ssl/glpi.key
+        &lt;/VirtualHost&gt;
+&lt;/IfModule&gt;</pre>
+    </div>
+
+    <p>Rediriger le VHOST HTTP vers HTTPS, puis sécuriser le cookie de session :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">nano</span> /etc/apache2/sites-available/001-default.conf
+<span class="hl-comment"># Ajouter :</span>
+Redirect permanent / https://glpi.vey.lan
+
+<span class="hl-cmd">systemctl reload</span> apache2
+<span class="hl-cmd">systemctl restart</span> apache2
+
+<span class="hl-comment"># Sécuriser le cookie de session en HTTPS</span>
+<span class="hl-cmd">nano</span> /etc/php/8.2/apache2/php.ini
+<span class="hl-comment"># Ctrl+W -> session.cookie_secure</span>
+session.cookie_secure = 1</pre>
+    </div>
+
+    <p>Enfin, désactiver l'accès HTTP maintenant que le HTTPS fonctionne :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">nano</span> /etc/apache2/ports.conf
+<span class="hl-comment"># Commenter la ligne "Listen 80"</span>
+
+<span class="hl-cmd">systemctl restart</span> apache2.service</pre>
+    </div>
+
+    <div class="screenshot">
+      <img src="img/glpi-01-https-actif.png" alt="Accès GLPI fonctionnel en HTTPS après désactivation du port 80" />
+    </div>
+
+    <h3>Étape 6 — Agent GLPI sur le serveur</h3>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">wget</span> https://github.com/glpi-project/glpi-inventory-plugin/releases/download/1.3.5/glpi-glpiinventory-1.3.5.tar.bz2
+<span class="hl-cmd">tar</span> xjvf glpi-glpiinventory-1.3.5.tar.bz2 <span class="hl-flag">-C</span> /var/www/html/
+<span class="hl-cmd">chown</span> <span class="hl-flag">-R</span> www-data:www-data * <span class="hl-comment"># Propriétaire du dossier /html/</span>
+<span class="hl-cmd">rm</span> <span class="hl-flag">-f</span> glpi-glpiinventory-1.3.5.tar.bz2</pre>
+    </div>
+    <p>Sur l'interface web GLPI, aller dans <strong>Administration → Inventaire</strong>, activer l'inventaire et sauvegarder.</p>
+
+    <h3>Étape 7 — Agent GLPI sur le client</h3>
+    <p>Télécharger l'agent depuis le dépôt officiel (<code>glpi-project/glpi-agent</code>) et renseigner les cibles lors de l'installation :</p>
+    <ul>
+      <li><strong>Local target</strong> : <code>C:\Program Files\GLPI-Agent\</code> (peut rester vide).</li>
+      <li><strong>Remote target</strong> : <code>http://glpi.vey.lan/glpi</code> (dépend de l'URL d'accès au site).</li>
+      <li>Logs de l'inventaire : <code>C:\Program Files\GLPI-Agent\logs</code>.</li>
+    </ul>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div>L'agent ne fonctionne pas en HTTPS : réactiver temporairement le port 80 côté serveur pour forcer un inventaire si celui-ci a été commenté dans <code>/etc/apache2/ports.conf</code>.</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">texte</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Pour forcer un inventaire rapidement depuis le client</span>
+127.0.0.1:62354</pre>
+    </div>
+    <p>Si le pare-feu client n'autorise pas l'agent GLPI, ouvrir le port nécessaire ou désactiver temporairement le pare-feu pour les tests.</p>
+  </div>
+
+  <!-- 4. VÉRIFICATION -->
+  <div class="wp-section" id="verification">
+    <h2><span class="step-num">4</span> Vérification</h2>
+    <div class="result-section">
+      <div class="result-label">// résultat attendu</div>
+      <div class="result-value">L'interface GLPI est accessible uniquement en HTTPS via https://glpi.vey.lan, avec des mots de passe par défaut modifiés. L'agent d'inventaire, une fois installé côté client, remonte bien la machine dans l'inventaire GLPI après activation du module côté serveur.</div>
+    </div>
+  </div>
+
+  <!-- 5. POINTS D'ATTENTION -->
+  <div class="wp-section" id="retour">
+    <h2><span class="step-num">5</span> Points d'attention & retour d'expérience</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Faire des snapshots réguliers de la VM pendant l'installation : une erreur de configuration Apache ou VHOST peut vite obliger à tout reprendre.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Le dossier <code>install/</code> de GLPI doit être supprimé après l'installation, sinon n'importe qui peut relancer l'assistant d'installation.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>L'agent GLPI ne supporte pas nativement HTTPS : prévoir de rouvrir temporairement le port 80 pour les phases de test d'inventaire.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Bien vérifier que le pare-feu du poste client autorise les communications de l'agent GLPI vers le serveur, sous peine d'inventaire silencieusement en échec.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-writeups">
+    <span></span>
+    <a href="../index.html#procedures">↑ Toutes les procédures</a>
+    <span></span>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/procedures/installation-glpi</span>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copié ✓';
+      setTimeout(() => btn.textContent = 'copier', 1800);
+    });
+  }
+</script>
+</body>
+</html>
