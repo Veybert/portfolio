@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procédure · Haute disponibilité d'un pare-feu — Bertrand VEY</title>
+  <meta name="description" content="Mise en place du protocole CARP et de la synchronisation pfsync entre deux pare-feu pfSense, avec redondance WAN et DMZ." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+    .box-header {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.8rem 2rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-category.orange { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-env { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc { color: var(--muted); font-size: 0.9rem; max-width: 560px; }
+    .box-meta {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      color: #a78bfa; border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: #a78bfa; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section h4 {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+      color: var(--muted); margin: 1rem 0 0.4rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+    .wp-section code { color: #a78bfa; font-family: var(--font-mono); font-size: 0.85em; }
+    table.addr-table {
+      width: 100%; border-collapse: collapse; margin: 0.8rem 0 1.2rem;
+      font-family: var(--font-mono); font-size: 0.72rem;
+    }
+    table.addr-table th, table.addr-table td {
+      border: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; color: #94a3b8;
+    }
+    table.addr-table th { color: var(--green); background: rgba(0,255,157,0.05); }
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem; transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; color: var(--text); margin: 0;
+    }
+    .hl-cmd { color: #00ff9d; }
+    .hl-flag { color: #60a5fa; }
+    .hl-str { color: #fbbf24; }
+    .hl-comment { color: #475569; }
+    .hl-ip { color: #a78bfa; }
+    .screenshot {
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 0.8rem 0 0.4rem;
+    }
+    .screenshot img { width: 100%; display: block; }
+    .screenshot-caption {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem; font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.tip { background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2); color: var(--green); }
+    .result-section {
+      background: var(--surface); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 1.8rem; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(124,58,237,0.05);
+    }
+    .result-label { font-family: var(--font-mono); font-size: 0.72rem; color: #a78bfa; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .result-value { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); }
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.9rem; color: #94a3b8; }
+    .takeaway-icon { color: var(--green); font-family: var(--font-mono); flex-shrink: 0; }
+    .nav-writeups {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; }
+    .nav-writeups a:hover { color: var(--green); }
+    footer {
+      border-top: 1px solid var(--border); text-align: center; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">~/bertrand-vey</a>
+  <span class="sep">/</span>
+  <a href="../index.html#procedures">procédures</a>
+  <span class="sep">/</span>
+  <span class="current">haute-disponibilite-pare-feu</span>
+</nav>
+
+<div class="page">
+
+  <div class="box-header">
+    <div class="box-top">
+      <span class="badge badge-category orange">Réseau</span>
+      <span class="badge badge-env">Labo pédagogique (Hyper-V)</span>
+    </div>
+    <div class="box-title">Haute disponibilité d'un pare-feu</div>
+    <div class="box-desc">Mise en place du protocole CARP entre deux pare-feu pfSense pour créer un routeur redondant, avec synchronisation pfsync, puis extension de la redondance aux liens WAN et à un réseau DMZ.</div>
+    <div class="box-meta">
+      <span><strong>Outils :</strong> pfSense, CARP, pfsync, Hyper-V</span>
+      <span><strong>Durée estimée :</strong> 1h30 – 2h</span>
+      <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
+    </div>
+    <div class="tag-list">
+      <span class="tag">pfSense</span>
+      <span class="tag">CARP</span>
+      <span class="tag">Haute disponibilité</span>
+      <span class="tag">DMZ</span>
+      <span class="tag">NAT</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Sommaire</div>
+    <ol>
+      <li><a href="#contexte">Contexte & objectif</a></li>
+      <li><a href="#prerequis">Prérequis & infrastructure</a></li>
+      <li><a href="#procedure">Procédure</a></li>
+      <li><a href="#verification">Vérification & tests</a></li>
+      <li><a href="#retour">Points d'attention</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. CONTEXTE -->
+  <div class="wp-section" id="contexte">
+    <h2><span class="step-num">1</span> Contexte & objectif</h2>
+    <p>Le protocole <strong>CARP</strong> (Common Address Redundancy Protocol) permet à plusieurs équipements réseau de partager une même adresse IP. C'est une alternative libre au protocole HSRP. Les machines partageant cette IP forment un groupe de redondance, avec un équipement « maître » et un ou plusieurs « esclaves » destinés à prendre le relai en cas de défaillance du premier.</p>
+    <p>Ici, CARP est utilisé pour créer un routeur / pare-feu redondant : les clients prennent l'IP virtuelle comme passerelle par défaut. En cas de panne du routeur principal, le second répond aux requêtes des clients en toute transparence, sans coupure. Le protocole <strong>pfsync</strong> gère quant à lui la synchronisation de configuration entre les deux pare-feu.</p>
+
+    <div class="screenshot">
+      <img src="img/ha-00-schema-infrastructure.png" alt="Schéma de l'infrastructure avec les deux pare-feu redondants" />
+    </div>
+    <div class="screenshot-caption">Schéma de l'infrastructure</div>
+  </div>
+
+  <!-- 2. PRÉREQUIS -->
+  <div class="wp-section" id="prerequis">
+    <h2><span class="step-num">2</span> Prérequis & infrastructure</h2>
+    <ul>
+      <li><strong>2 pare-feu pfSense</strong> avec 4 réseaux différents chacun (WAN, CARP/pfsync, LAN, DMZ).</li>
+      <li>Un client <strong>Windows 10</strong> dans le réseau LAN pour la configuration et les tests.</li>
+      <li>Un <strong>serveur web Debian</strong> dans le réseau DMZ pour les tests depuis l'extérieur.</li>
+      <li>Environnement entièrement virtualisé sous <strong>Hyper-V</strong>.</li>
+      <li>Une configuration de base pfSense déjà en place sur les deux pare-feu (voir la procédure « Pare-feu pfSense »).</li>
+    </ul>
+
+    <h4>Tableau d'adressage</h4>
+    <table class="addr-table">
+      <tr><th>Périphérique</th><th>Réseau</th><th>Interface</th><th>Adresse IP</th><th>Masque</th><th>Passerelle</th></tr>
+      <tr><td rowspan="4">Pare-feu maître</td><td>WAN</td><td>hn0</td><td>DHCP</td><td>255.255.252.0</td><td>172.26.1.254</td></tr>
+      <tr><td>CARP (pfsync)</td><td>hn2</td><td>10.1.1.2</td><td>255.255.255.240</td><td>172.26.1.254</td></tr>
+      <tr><td>LAN</td><td>hn1</td><td>172.20.0.253</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td>DMZ</td><td>hn3</td><td>192.168.1.254</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td rowspan="4">Pare-feu esclave</td><td>WAN</td><td>hn0</td><td>DHCP</td><td>255.255.252.0</td><td>172.26.1.254</td></tr>
+      <tr><td>CARP (pfsync)</td><td>hn2</td><td>10.1.1.1</td><td>255.255.255.240</td><td>172.26.1.254</td></tr>
+      <tr><td>LAN</td><td>hn1</td><td>172.20.0.254</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td>DMZ</td><td>hn3</td><td>192.168.1.253</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td colspan="2">Virtuelle (LAN)</td><td>—</td><td>172.20.0.252</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td colspan="2">Virtuelle (WAN)</td><td>—</td><td>172.26.1.10</td><td>255.255.252.0</td><td>172.26.1.254</td></tr>
+      <tr><td colspan="2">Virtuelle (DMZ)</td><td>—</td><td>192.168.1.252</td><td>255.255.255.0</td><td>172.26.1.254</td></tr>
+      <tr><td>Client</td><td>LAN</td><td>Ethernet</td><td>172.20.0.1</td><td>255.255.255.0</td><td>172.20.0.252</td></tr>
+      <tr><td>Serveur web</td><td>DMZ</td><td>eth0</td><td>192.168.1.100</td><td>255.255.255.0</td><td>192.168.1.252</td></tr>
+    </table>
+  </div>
+
+  <!-- 3. PROCÉDURE -->
+  <div class="wp-section" id="procedure">
+    <h2><span class="step-num">3</span> Procédure</h2>
+
+    <h3>Étape 1 — Préparer l'interface CARP</h3>
+    <p>Pour plus de lisibilité, renommer la 3ème interface reliant les deux pare-feu (celle qui va porter CARP et pfsync) dans <strong>Interfaces</strong> :</p>
+    <div class="screenshot"><img src="img/ha-01-renommer-interface-carp.png" alt="Renommage de l'interface CARP" /></div>
+
+    <h4>A - Ajout d'une règle</h4>
+    <p>Créer une règle autorisant tout le trafic entre les deux pare-feu, dans <strong>Firewall → Rules → CARP</strong> (règle ouverte pour simplifier la configuration et les accès) :</p>
+    <div class="screenshot"><img src="img/ha-02-regle-firewall-carp.png" alt="Règle firewall autorisant le trafic CARP" /></div>
+
+    <h3>Étape 2 — Activer la réplication entre les deux routeurs</h3>
+
+    <h4>Sur le pare-feu maître</h4>
+    <p>Dans <strong>System → High Availability → Sync</strong>, activer pfsync sur l'interface CARP et renseigner l'IP du pare-feu esclave dans les sections pfsync et XMLRPC Sync :</p>
+    <div class="screenshot"><img src="img/ha-03-sync-maitre-pfsync.png" alt="Configuration pfsync sur le pare-feu maître" /></div>
+
+    <p>Renseigner ensuite le nom d'utilisateur et le mot de passe du pare-feu esclave, puis cocher toutes les cases pour synchroniser l'ensemble des fonctionnalités :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">identifiants</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre>username : admin
+password : pfsense</pre>
+    </div>
+    <div class="screenshot"><img src="img/ha-04-sync-maitre-credentials.png" alt="Identifiants XMLRPC Sync du pare-feu esclave" /></div>
+
+    <h4>Sur le pare-feu esclave</h4>
+    <p>Ne configurer que la partie pfsync en renseignant l'adresse IP du pare-feu maître, sans toucher aux autres paramètres :</p>
+    <div class="screenshot"><img src="img/ha-05-sync-esclave.png" alt="Configuration pfsync sur le pare-feu esclave" /></div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div>À partir de maintenant, toute action ou configuration réalisée sur le pare-feu maître est automatiquement répliquée sur l'esclave. Effectuer systématiquement les modifications sur le maître uniquement.</div>
+    </div>
+
+    <h3>Étape 3 — Déclarer une IP virtuelle sur l'interface LAN</h3>
+    <p>Cette IP virtuelle servira de passerelle par défaut pour le client du réseau LAN. Se rendre dans <strong>Firewall → Virtual IPs</strong> et ajouter une interface :</p>
+    <div class="screenshot"><img src="img/ha-06-virtual-ips-ajout.png" alt="Ajout d'une IP virtuelle" /></div>
+
+    <p>La configuration doit ressembler à ceci :</p>
+    <div class="screenshot"><img src="img/ha-07-virtual-ip-config.png" alt="Configuration de l'IP virtuelle LAN" /></div>
+
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div>La valeur <strong>skew</strong> détermine quel pare-feu sera maître ou esclave : le maître a la valeur la plus petite.</div>
+    </div>
+
+    <p>L'interface créée doit apparaître dans le menu :</p>
+    <div class="screenshot"><img src="img/ha-08-virtual-ip-menu.png" alt="Interface virtuelle listée dans le menu" /></div>
+
+    <p>La configuration Hyper-V ne permet pas nativement de ping l'interface virtuelle créée : il faut activer l'usurpation d'adresse MAC sur la carte réseau LAN de la VM :</p>
+    <div class="screenshot"><img src="img/ha-09-hyperv-usurpation-mac.png" alt="Activation de l'usurpation d'adresse MAC sous Hyper-V" /></div>
+
+    <h4>Vérification du statut CARP</h4>
+    <p>Se rendre dans <strong>Status → CARP (failover)</strong>. Pour le pare-feu maître, le statut doit être « MASTER » :</p>
+    <div class="screenshot"><img src="img/ha-10-carp-status-master.png" alt="Statut CARP MASTER" /></div>
+
+    <p>Pour le pare-feu esclave, le statut doit être « BACKUP » :</p>
+    <div class="screenshot"><img src="img/ha-11-carp-status-backup.png" alt="Statut CARP BACKUP" /></div>
+
+    <h3>Étape 4 — Redondance sur le lien externe WAN</h3>
+    <p>En plus de la redondance interne, on fournit la haute disponibilité sur le lien externe pour maintenir la connectivité Internet des clients. Créer une interface virtuelle sur l'interface WAN, comme précédemment pour le LAN :</p>
+    <div class="screenshot"><img src="img/ha-14-virtual-ip-wan.png" alt="Création d'une IP virtuelle sur l'interface WAN" /></div>
+    <p>Une adresse IP externe de l'environnement pédagogique est renseignée sur cette interface virtuelle.</p>
+
+    <h4>A - Création des règles NAT</h4>
+    <p>Dans <strong>Firewall → NAT → Outbound</strong>, sélectionner le mode manuel puis ne laisser que les adresses du réseau interne, car seul ce réseau doit être translaté :</p>
+    <div class="screenshot"><img src="img/ha-15-nat-outbound-manuel.png" alt="Configuration NAT Outbound en mode manuel" /></div>
+
+    <h4>Règle de port forwarding</h4>
+    <p>Créer une règle de redirection de port pour accéder au futur serveur web du LAN, dans <strong>Firewall → Rules → Port Forwarding</strong>. Le protocole TCP est autorisé depuis l'extérieur vers le serveur web, avec pour destination l'interface virtuelle WAN créée à l'étape précédente :</p>
+    <div class="screenshot"><img src="img/ha-16-port-forwarding-regle.png" alt="Règle de port forwarding" /></div>
+
+    <h3>Étape 5 — Redondance avec un réseau interne DMZ</h3>
+    <p>Le serveur web est ensuite déplacé dans un nouveau réseau DMZ : une interface interne supplémentaire est ajoutée sur les deux pare-feu (4 interfaces physiques et 3 interfaces virtuelles au total). Créer l'interface virtuelle DMZ de la même façon que pour le LAN et le WAN :</p>
+    <div class="screenshot"><img src="img/ha-19-dmz-reseaux-interfaces.png" alt="Réseaux et interfaces avec le nouveau réseau DMZ" /></div>
+    <div class="screenshot-caption">Réseaux et interfaces</div>
+    <div class="screenshot"><img src="img/ha-20-dmz-interfaces-virtuelles.png" alt="Interfaces virtuelles incluant la DMZ" /></div>
+    <div class="screenshot-caption">Interfaces virtuelles</div>
+  </div>
+
+  <!-- 4. VÉRIFICATION -->
+  <div class="wp-section" id="verification">
+    <h2><span class="step-num">4</span> Vérification & tests</h2>
+
+    <h4>Test de la configuration pfsync</h4>
+    <p>Depuis le client du LAN, effectuer un <code>tracert 8.8.8.8</code> avec le pare-feu maître allumé, puis en l'éteignant :</p>
+    <div class="screenshot"><img src="img/ha-13-tracert-maitre-active.png" alt="Tracert avec le pare-feu maître activé" /></div>
+    <div class="screenshot-caption">Tracert avec le pare-feu maître activé</div>
+    <div class="screenshot"><img src="img/ha-12-tracert-maitre-eteint.png" alt="Tracert avec le pare-feu maître éteint" /></div>
+    <div class="screenshot-caption">Tracert avec le pare-feu maître éteint</div>
+
+    <h4>Test de la règle de port forwarding</h4>
+    <p>Depuis la machine physique, accès au serveur web via l'adresse virtuelle externe <strong>172.26.1.10</strong> :</p>
+    <div class="screenshot"><img src="img/ha-17-test-acces-serveur-web.png" alt="Accès au serveur web via l'IP externe virtuelle" /></div>
+    <p>Avec <code>tcpdump</code>, on confirme que la redirection fonctionne toujours lorsque le maître est éteint : l'adresse IP qui apparaît est celle du pare-feu esclave.</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Installer tcpdump</span>
+<span class="hl-cmd">sudo apt-get install</span> tcpdump <span class="hl-flag">-y</span>
+
+<span class="hl-comment"># Lancer la capture sur l'interface eth0 du serveur</span>
+<span class="hl-cmd">tcpdump</span> <span class="hl-flag">-i</span> eth0</pre>
+    </div>
+    <div class="screenshot"><img src="img/ha-18-tcpdump-ip-esclave.png" alt="Capture tcpdump montrant l'adresse du pare-feu esclave" /></div>
+    <div class="screenshot-caption">Adresse IP du pare-feu esclave visible dans la capture</div>
+
+    <h4>Test de redondance de la DMZ</h4>
+    <p>Le serveur reste accessible depuis l'extérieur avec les deux pare-feu allumés :</p>
+    <div class="screenshot"><img src="img/ha-21-acces-serveur-2-parefeu.png" alt="Accès au serveur avec les deux pare-feu actifs" /></div>
+    <p><code>tcpdump</code> permet de voir par quel pare-feu transitent les paquets :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">tcpdump</span> <span class="hl-flag">-i</span> eth0</pre>
+    </div>
+    <div class="screenshot"><img src="img/ha-22-tcpdump-ip-maitre-dmz.png" alt="Capture tcpdump avec l'adresse du pare-feu maître (DMZ)" /></div>
+    <div class="screenshot-caption">Adresse du pare-feu maître avec l'adresse du réseau DMZ</div>
+
+    <p>Après coupure du pare-feu maître, analyse des paquets sur le serveur web :</p>
+    <div class="screenshot"><img src="img/ha-23-tcpdump-ip-esclave-dmz.png" alt="Capture tcpdump avec l'adresse du pare-feu esclave (DMZ)" /></div>
+    <div class="screenshot-caption">Adresse du pare-feu esclave avec l'adresse du réseau DMZ</div>
+
+    <div class="result-section">
+      <div class="result-label">// résultat attendu</div>
+      <div class="result-value">Le changement de passerelle s'effectue de façon transparente à chaque coupure du pare-feu maître : la connectivité WAN, le port forwarding et l'accès au serveur DMZ restent fonctionnels. La haute disponibilité est opérationnelle.</div>
+    </div>
+  </div>
+
+  <!-- 5. POINTS D'ATTENTION -->
+  <div class="wp-section" id="retour">
+    <h2><span class="step-num">5</span> Points d'attention & retour d'expérience</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Toujours effectuer les modifications de configuration sur le pare-feu maître : elles sont répliquées automatiquement vers l'esclave via pfsync.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>La valeur <em>skew</em> la plus basse désigne le maître : bien la vérifier sur chaque interface virtuelle (LAN, WAN, DMZ).</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Sous Hyper-V, l'usurpation d'adresse MAC doit être activée sur les cartes réseau des VM pour que les IP virtuelles CARP répondent correctement.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Le NAT Outbound doit repasser en mode manuel dès qu'une interface virtuelle WAN est utilisée, pour translater uniquement le trafic voulu.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-writeups">
+    <span></span>
+    <a href="../index.html#procedures">↑ Toutes les procédures</a>
+    <span></span>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/procedures/haute-disponibilite-pare-feu</span>
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copié ✓';
+      setTimeout(() => btn.textContent = 'copier', 1800);
+    });
+  }
+</script>
+</body>
+</html>
