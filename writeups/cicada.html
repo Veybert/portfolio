@@ -273,7 +273,7 @@
 
     <div class="callout info">
       <span class="callout-icon">ℹ</span>
-      <div>Un partage <strong>HR</strong> attire l'attention — potentiellement accessible en session nulle, à tester en priorité.</div>
+      <div>Un partage <strong>HR</strong> attire l'attention, potentiellement accessible en session nulle, à tester en priorité.</div>
     </div>
   </div>
 
@@ -301,7 +301,7 @@
 
     <div class="callout warn">
       <span class="callout-icon">⚠</span>
-      <div>Mot de passe récupéré : <code>Cicada$M6Corpb*@Lp#nZp!8</code> — reste à trouver un compte utilisateur valide pour le tester (probable réutilisation en tant que mot de passe par défaut du domaine).</div>
+      <div>Mot de passe récupéré : <code>Cicada$M6Corpb*@Lp#nZp!8</code>.Il reste à trouver un compte utilisateur valide pour le tester (probable réutilisation en tant que mot de passe par défaut du domaine).</div>
     </div>
 
     <h3>Énumération du domaine avec les credentials trouvés</h3>
@@ -316,7 +316,7 @@
     </div>
 
     <div class="screenshot">
-      <div class="screenshot-bar">enum4linux-ng — énumération authentifiée</div>
+      <div class="screenshot-bar">enum4linux-ng, énumération authentifiée</div>
       <img src="imgs/cicada/cicada-03-enum4linux-users.png" alt="Résultat enum4linux-ng listant les utilisateurs du domaine" />
     </div>
   </div>
@@ -365,13 +365,13 @@
     </div>
 
     <div class="screenshot">
-      <div class="screenshot-bar">shell obtenu — emily.oscars</div>
+      <div class="screenshot-bar">shell obtenu avec emily.oscars</div>
       <img src="imgs/cicada/cicada-05-evil-winrm-emily.png" alt="Shell evil-winrm obtenu en tant qu'emily.oscars" />
     </div>
 
     <div class="callout flag">
       <span class="callout-icon">🚩</span>
-      <div>user.txt — récupéré en tant que <strong>emily.oscars</strong></div>
+      <div>user.txt récupéré en tant que <strong>emily.oscars</strong></div>
     </div>
   </div>
 
@@ -388,7 +388,7 @@
 
     <div class="callout vuln">
       <span class="callout-icon">⚡</span>
-      <div><strong>Vulnérabilité :</strong> SeBackupPrivilege permet de lire n'importe quel fichier du système en contournant les ACL NTFS — y compris les ruches de registre SAM/SYSTEM ou la base NTDS.dit, ouvrant la voie à l'extraction des hashes du domaine. Référence utilisée : <em>hackingarticles.in — Windows Privilege Escalation: SeBackupPrivilege</em>.</div>
+      <div><strong>Vulnérabilité :</strong> SeBackupPrivilege permet de lire n'importe quel fichier du système en contournant les ACL NTFS y compris les ruches de registre SAM/SYSTEM ou la base NTDS.dit, ouvrant la voie à l'extraction des hashes du domaine.  <a href="https://www.hackingarticles.in/windows-privilege-escalation-sebackupprivilege/" target="_blank" rel="noopener noreferrer">hackingarticles.in/windows-privilege-escalation-sebackupprivilege</a>.</div>
     </div>
 
     <p>Ce privilège est exploité pour sauvegarder les ruches nécessaires à l'extraction des secrets locaux/domaine :</p>
@@ -401,7 +401,7 @@
     <p>Les fichiers récupérés sont ensuite analysés avec <strong>pypykatz</strong> pour en extraire le hash NTLM du compte Administrator :</p>
 
     <div class="screenshot">
-      <div class="screenshot-bar">pypykatz — extraction du hash Administrator</div>
+      <div class="screenshot-bar">pypykatz : extraction du hash Administrator</div>
       <img src="imgs/cicada/cicada-08-pypykatz-hash.png" alt="pypykatz extrayant le hash NTLM du compte Administrator" />
     </div>
 
@@ -421,9 +421,9 @@
   <!-- 5. RÉSULTAT -->
   <div id="flags">
     <div class="flag-section">
-      <div class="flag-label">// Administrator (Pass-the-Hash)</div>
+      <div class="flag-label">Administrator (Pass-the-Hash)</div>
       <div class="flag-value">2b87e7c93a3e8a0ea4a581937016f341</div>
-      <div class="flag-type">Hash NTLM extrait via SeBackupPrivilege + pypykatz — accès Administrator obtenu</div>
+      <div class="flag-type">Hash NTLM extrait via SeBackupPrivilege + pypykatz et accès Administrator obtenu</div>
     </div>
   </div>
 
