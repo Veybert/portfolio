@@ -268,7 +268,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">liste des partages SMB</div>
-      <img src="../img/cicada-01-smb-shares.png" alt="Liste des partages SMB disponibles sur cicada.htb" />
+      <img src="../imgs/cicada/cicada-01-smb-shares.png" alt="Liste des partages SMB disponibles sur cicada.htb" />
     </div>
 
     <div class="callout info">
@@ -296,7 +296,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">fichier du partage HR — mot de passe par défaut</div>
-      <img src="../img/cicada-02-hr-file-mdp.png" alt="Fichier du partage HR révélant un mot de passe par défaut" />
+      <img src="../imgs/cicada/cicada-02-hr-file-mdp.png" alt="Fichier du partage HR révélant un mot de passe par défaut" />
     </div>
 
     <div class="callout warn">
@@ -317,7 +317,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">enum4linux-ng — énumération authentifiée</div>
-      <img src="../img/cicada-03-enum4linux-users.png" alt="Résultat enum4linux-ng listant les utilisateurs du domaine" />
+      <img src="../imgs/cicada/cicada-03-enum4linux-users.png" alt="Résultat enum4linux-ng listant les utilisateurs du domaine" />
     </div>
   </div>
 
@@ -346,7 +346,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">partage DEV — nouvelles credentials</div>
-      <img src="../img/cicada-04-dev-share-emily-creds.png" alt="Fichier du partage DEV révélant les credentials d'emily.oscars" />
+      <img src="../imgs/cicada/cicada-04-dev-share-emily-creds.png" alt="Fichier du partage DEV révélant les credentials d'emily.oscars" />
     </div>
 
     <div class="callout warn">
@@ -366,7 +366,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">shell obtenu — emily.oscars</div>
-      <img src="../img/cicada-05-evil-winrm-emily.png" alt="Shell evil-winrm obtenu en tant qu'emily.oscars" />
+      <img src="../imgs/cicada/cicada-05-evil-winrm-emily.png" alt="Shell evil-winrm obtenu en tant qu'emily.oscars" />
     </div>
 
     <div class="callout flag">
@@ -383,7 +383,7 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">whoami /priv — SeBackupPrivilege activé</div>
-      <img src="../img/cicada-06-whoami-priv-sebackup.png" alt="Sortie whoami /priv montrant SeBackupPrivilege" />
+      <img src="../imgs/cicada/cicada-06-whoami-priv-sebackup.png" alt="Sortie whoami /priv montrant SeBackupPrivilege" />
     </div>
 
     <div class="callout vuln">
@@ -395,14 +395,14 @@
 
     <div class="screenshot">
       <div class="screenshot-bar">abus de SeBackupPrivilege</div>
-      <img src="../img/cicada-07-abus-sebackupprivilege.png" alt="Exploitation de SeBackupPrivilege pour extraire les ruches de registre" />
+      <img src="../imgs/cicada/cicada-07-abus-sebackupprivilege.png" alt="Exploitation de SeBackupPrivilege pour extraire les ruches de registre" />
     </div>
 
     <p>Les fichiers récupérés sont ensuite analysés avec <strong>pypykatz</strong> pour en extraire le hash NTLM du compte Administrator :</p>
 
     <div class="screenshot">
       <div class="screenshot-bar">pypykatz — extraction du hash Administrator</div>
-      <img src="../img/cicada-08-pypykatz-hash.png" alt="pypykatz extrayant le hash NTLM du compte Administrator" />
+      <img src="../imgs/cicada/cicada-08-pypykatz-hash.png" alt="pypykatz extrayant le hash NTLM du compte Administrator" />
     </div>
 
     <p>Le hash récupéré permet une authentification directe par Pass-the-Hash, sans connaître le mot de passe en clair :</p>
