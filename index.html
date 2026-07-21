@@ -95,16 +95,39 @@
       margin: 0 auto;
     }
     .terminal-window {
-      background: var(--surface);
-      border: 1px solid var(--border);
+      position: relative;
+      border: 1px solid rgba(228,3,46,0.35);
       border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 0 60px rgba(0,255,157,0.06);
+      box-shadow: 0 0 70px rgba(228,3,46,0.12);
+      isolation: isolate;
+    }
+    .terminal-window::before {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 85% 15%, rgba(228,3,46,0.5), transparent 42%),
+        radial-gradient(circle at 5% 95%, rgba(120,0,20,0.4), transparent 55%),
+        linear-gradient(160deg, #050505 0%, #0d0405 50%, #000000 100%);
+      z-index: -2;
+    }
+    .terminal-window::after {
+      content: "";
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(228,3,46,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(228,3,46,0.06) 1px, transparent 1px);
+      background-size: 30px 30px;
+      backdrop-filter: blur(16px) saturate(140%);
+      -webkit-backdrop-filter: blur(16px) saturate(140%);
+      z-index: -1;
     }
     .terminal-bar {
-      background: #1a2235;
+      background: rgba(15,5,6,0.65);
       padding: 0.6rem 1rem;
       display: flex; align-items: center; gap: 0.45rem;
+      border-bottom: 1px solid rgba(228,3,46,0.3);
+      position: relative;
     }
     .dot { width: 12px; height: 12px; border-radius: 50%; }
     .dot-r { background: #ff5f57; }
@@ -113,7 +136,7 @@
     .terminal-title {
       font-family: var(--font-mono);
       font-size: 0.75rem;
-      color: var(--muted);
+      color: #d99;
       margin-left: auto;
     }
     .terminal-body {
@@ -122,16 +145,17 @@
       font-size: 0.9rem;
       line-height: 1.9;
       min-height: 300px;
+      position: relative;
     }
-    .t-prompt { color: var(--green); }
+    .t-prompt { color: #e4032e; }
     .t-cmd    { color: var(--text); }
-    .t-key    { color: var(--purple); }
-    .t-val    { color: #60a5fa; }
-    .t-comment{ color: var(--muted); }
+    .t-key    { color: #ff5c72; }
+    .t-val    { color: #ff8f9c; }
+    .t-comment{ color: #8a5a5f; }
     .cursor {
       display: inline-block;
       width: 9px; height: 1.1em;
-      background: var(--green);
+      background: #e4032e;
       vertical-align: text-bottom;
       animation: blink 1s step-end infinite;
     }
