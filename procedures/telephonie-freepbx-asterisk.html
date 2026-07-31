@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procédure · Téléphonie IP avec FreePBX / Asterisk — Bertrand VEY</title>
+  <meta name="description" content="Configuration complète d'un serveur de téléphonie FreePBX/Asterisk : postes SIP, messagerie vocale, IVR, conférences, trunk SIP et sécurisation." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0a0e17;
+      --surface:  #111827;
+      --border:   #1e2d40;
+      --green:    #00ff9d;
+      --purple:   #7c3aed;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --font-mono:'JetBrains Mono', monospace;
+      --font-body:'Inter', sans-serif;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.7; }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; gap: 1.2rem;
+      padding: 0 2rem; height: 52px;
+      background: rgba(10,14,23,0.9); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    nav a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    nav a:hover { color: var(--green); }
+    nav .sep { color: var(--border); }
+    nav .current { color: var(--green); }
+    .page { max-width: 820px; margin: 0 auto; padding: 5.5rem 2rem 4rem; }
+    .box-header {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.8rem 2rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;
+    }
+    .box-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .badge {
+      font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.2rem 0.55rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .badge-category.orange { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .badge-env { background: rgba(100,116,139,0.15); color: var(--muted); }
+    .box-title { font-family: var(--font-mono); font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 700; color: var(--text); }
+    .box-desc { color: var(--muted); font-size: 0.9rem; max-width: 600px; }
+    .box-meta {
+      display: flex; flex-wrap: wrap; gap: 1.4rem;
+      border-top: 1px solid var(--border); padding-top: 1rem;
+      font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted);
+    }
+    .box-meta span strong { color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .tag {
+      font-family: var(--font-mono); font-size: 0.7rem;
+      background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);
+      color: #a78bfa; border-radius: 4px; padding: 0.15rem 0.5rem;
+    }
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.2rem 1.5rem; margin-bottom: 2.5rem;
+    }
+    .toc-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.7rem; }
+    .toc ol { padding-left: 1.2rem; columns: 1; }
+    .toc li { font-family: var(--font-mono); font-size: 0.82rem; margin-bottom: 0.25rem; }
+    .toc a { color: var(--muted); text-decoration: none; }
+    .toc a:hover { color: var(--green); }
+    .wp-section { margin-bottom: 3rem; }
+    .wp-section h2 {
+      font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem;
+    }
+    .wp-section h2 .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      color: #a78bfa; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .wp-section h3 {
+      font-family: var(--font-mono); font-size: 0.88rem; font-weight: 600;
+      color: #a78bfa; margin: 1.2rem 0 0.5rem;
+    }
+    .wp-section h4 {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600;
+      color: var(--muted); margin: 1rem 0 0.4rem;
+    }
+    .wp-section p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section ul, .wp-section ol { padding-left: 1.4rem; color: #94a3b8; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .wp-section li { margin-bottom: 0.3rem; }
+    .wp-section code { color: #a78bfa; font-family: var(--font-mono); font-size: 0.85em; }
+    .code-block {
+      background: #080c13; border: 1px solid var(--border);
+      border-radius: 8px; overflow: hidden; margin: 0.8rem 0 1.2rem;
+    }
+    .code-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 1rem; background: #0d1421;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+    }
+    .code-bar .lang { color: var(--green); }
+    .code-bar .copy-btn {
+      cursor: pointer; background: none; border: none; color: var(--muted);
+      font-family: var(--font-mono); font-size: 0.68rem; transition: color .2s; padding: 0;
+    }
+    .code-bar .copy-btn:hover { color: var(--green); }
+    pre {
+      padding: 1.1rem 1.3rem; overflow-x: auto;
+      font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; color: var(--text); margin: 0;
+    }
+    .hl-cmd { color: #00ff9d; }
+    .hl-flag { color: #60a5fa; }
+    .hl-str { color: #fbbf24; }
+    .hl-comment { color: #475569; }
+    .hl-ip { color: #a78bfa; }
+    /* emplacement d'image à insérer manuellement */
+    .screenshot {
+      border: 1px dashed rgba(124,58,237,0.35); border-radius: 8px;
+      overflow: hidden; margin: 0.8rem 0 0.4rem;
+      background: rgba(124,58,237,0.03);
+    }
+    .screenshot-placeholder {
+      min-height: 90px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      gap: 0.2rem; padding: 1rem;
+      color: #a78bfa; font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .screenshot-placeholder .src-hint {
+      color: var(--muted); font-size: 0.68rem;
+    }
+    .screenshot-caption {
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+    .callout {
+      display: flex; gap: 0.8rem; align-items: flex-start;
+      border-radius: 8px; padding: 1rem 1.2rem; margin: 0.8rem 0 1.2rem; font-size: 0.88rem;
+    }
+    .callout-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .callout.info { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.2); color: #93c5fd; }
+    .callout.warn { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+    .callout.tip { background: rgba(0,255,157,0.07); border: 1px solid rgba(0,255,157,0.2); color: var(--green); }
+    .callout.vuln { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); color: #fca5a5; }
+    .result-section {
+      background: var(--surface); border: 1px solid rgba(124,58,237,0.3);
+      border-radius: 10px; padding: 1.8rem; margin-bottom: 3rem;
+      box-shadow: 0 0 40px rgba(124,58,237,0.05);
+    }
+    .result-label { font-family: var(--font-mono); font-size: 0.72rem; color: #a78bfa; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .result-value { font-family: var(--font-mono); font-size: 0.92rem; color: var(--text); }
+    .takeaways { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+    .takeaway { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.9rem; color: #94a3b8; }
+    .takeaway-icon { color: var(--green); font-family: var(--font-mono); flex-shrink: 0; }
+    .nav-writeups {
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      padding-top: 2rem; border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.8rem;
+    }
+    .nav-writeups a { color: var(--muted); text-decoration: none; }
+    .nav-writeups a:hover { color: var(--green); }
+    footer {
+      border-top: 1px solid var(--border); text-align: center; padding: 1.5rem;
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">~/bertrand-vey</a>
+  <span class="sep">/</span>
+  <a href="../index.html#procedures">procédures</a>
+  <span class="sep">/</span>
+  <span class="current">telephonie-freepbx-asterisk</span>
+</nav>
+
+<div class="page">
+
+  <div class="box-header">
+    <div class="box-top">
+      <span class="badge badge-category orange">Réseau / Téléphonie</span>
+      <span class="badge badge-env">Labo pédagogique — SAE R5.03</span>
+    </div>
+    <div class="box-title">Téléphonie IP avec FreePBX / Asterisk</div>
+    <div class="box-desc">Ingénierie d'un système de téléphonie sur IP : configuration des postes SIP (physiques et Linphone), analyse CLI Asterisk, capture Wireshark d'un appel, messagerie vocale, IVR, conférences, groupes de sonnerie, sécurisation du port SIP et réalisation d'un trunk SIP.</div>
+    <div class="box-meta">
+      <span><strong>Outils :</strong> FreePBX, Asterisk, Linphone, Wireshark</span>
+      <span><strong>Durée estimée :</strong> plusieurs séances (SAE)</span>
+      <span><strong>Dernière mise à jour :</strong> juillet 2026</span>
+    </div>
+    <div class="tag-list">
+      <span class="tag">FreePBX</span>
+      <span class="tag">Asterisk</span>
+      <span class="tag">VoIP</span>
+      <span class="tag">SIP</span>
+      <span class="tag">Wireshark</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Sommaire</div>
+    <ol>
+      <li><a href="#prerequis">1. Prérequis</a></li>
+      <li><a href="#postes">2. Configuration des postes</a></li>
+      <li><a href="#cli">3. Analyse de la CLI Asterisk</a></li>
+      <li><a href="#wireshark">4. Analyse d'un appel avec Wireshark</a></li>
+      <li><a href="#messages">5. Analyse des messages</a></li>
+      <li><a href="#annonces">6. Configuration des annonces</a></li>
+      <li><a href="#alerte">7. Configurer un message d'alerte</a></li>
+      <li><a href="#ivr">8. Configuration d'un standard automatique (IVR)</a></li>
+      <li><a href="#avancees">9. Configurations avancées</a></li>
+      <li><a href="#securisation">10. Changer le port SIP par défaut</a></li>
+      <li><a href="#trunk">11. Réalisation du Trunk SIP</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. PRÉREQUIS -->
+  <div class="wp-section" id="prerequis">
+    <h2><span class="step-num">1</span> Prérequis</h2>
+    <p>Pour la réalisation du TP, il était nécessaire d'installer un serveur en machine virtuelle avec 4 Go de RAM et une IP fixe : <code>172.23.200.108/16</code>.</p>
+    <ul>
+      <li>2 téléphones physiques.</li>
+      <li>Un téléphone virtuel via <strong>Linphone</strong>, à configurer par la suite.</li>
+    </ul>
+    <p>Deux services devaient être désactivés :</p>
+    <ul>
+      <li>Fail2ban</li>
+      <li>Firewalld</li>
+    </ul>
+    <p>Identifiants générés par l'installation : <code>sangoma:vsc4oJX55U57+Xpb</code></p>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Service fail2ban</span>
+<span class="hl-cmd">sudo systemctl stop</span> fail2ban.service
+<span class="hl-cmd">sudo systemctl disable</span> fail2ban.service
+
+<span class="hl-comment"># Service firewalld</span>
+<span class="hl-cmd">sudo systemctl stop</span> firewalld.service
+<span class="hl-cmd">sudo systemctl disable</span> firewall.service</pre>
+    </div>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image.png</span></div></div>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 1.png</span></div></div>
+  </div>
+
+  <!-- 2. CONFIGURATION DES POSTES -->
+  <div class="wp-section" id="postes">
+    <h2><span class="step-num">2</span> Configuration des postes</h2>
+    <p>Pour configurer les postes, se rendre dans <strong>Connectivité → Postes</strong> et créer un nouveau poste SIP :</p>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — création d'un poste SIP ]<span class="src-hint">image 2.png</span></div></div>
+
+    <ul>
+      <li>Le champ 1 permet de renseigner l'extension, le numéro à composer par la suite.</li>
+      <li>Le champ 2 sera le nom affiché sur le téléphone.</li>
+      <li>Le champ 3 est le secret permettant d'appareiller le téléphone avec le serveur.</li>
+    </ul>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — utilisateurs créés ]<span class="src-hint">image 3.png</span></div></div>
+    <p>On peut voir les utilisateurs créés par la suite.</p>
+
+    <h3>A. Configuration du téléphone</h3>
+    <p>Le téléphone obtient une adresse IP par DHCP. Rentrer l'adresse IP dans un navigateur pour y accéder.</p>
+    <p>Identifiants par défaut : <code>admin:admin</code></p>
+    <p>Une fois sur l'interface, se rendre dans <strong>Account</strong> et renseigner les informations rentrées lors de la création de poste :</p>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — Account sur le téléphone ]<span class="src-hint">image 4.png</span></div></div>
+
+    <p>Les informations importantes sont :</p>
+    <ul>
+      <li>Label</li>
+      <li>Register Name</li>
+      <li>User Name</li>
+      <li>Password (secret)</li>
+      <li>SIP server (notre VM serveur)</li>
+    </ul>
+
+    <p>Sur l'interface web, onglet <strong>Dashboard</strong>, on peut voir le nombre d'utilisateurs connectés à notre serveur :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — Dashboard, utilisateurs connectés ]<span class="src-hint">image 5.png</span></div></div>
+
+    <h3>B. Configuration sur Linphone</h3>
+    <p>En utilisant l'assistant de compte, utiliser un compte SIP pour associer le compte à la solution Linphone :</p>
+    <ul>
+      <li>Rentrer comme nom d'utilisateur l'extension : ici <code>1011</code>.</li>
+      <li>Renseigner l'adresse IP du serveur dans le champ Domaine SIP.</li>
+      <li>Utiliser le mot de passe (secret) renseigné lors de la création du poste.</li>
+      <li>Choisir le protocole UDP.</li>
+    </ul>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — assistant de compte Linphone ]<span class="src-hint">image 6.png</span></div></div>
+  </div>
+
+  <!-- 3. CLI ASTERISK -->
+  <div class="wp-section" id="cli">
+    <h2><span class="step-num">3</span> Analyse de la CLI Asterisk</h2>
+    <p>On peut vérifier certains paramètres avec la ligne de commande Asterisk, soit en passant par le serveur directement, soit par un onglet sur l'interface web.</p>
+    <p>Pour rentrer en CLI sur le serveur :</p>
+
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">asterisk</span> <span class="hl-flag">-rvvv</span></pre>
+    </div>
+
+    <p>Voici quelques commandes :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Consulter les utilisateurs paramétrés</span>
+<span class="hl-cmd">pjsips show contacts</span>
+
+<span class="hl-comment"># Consulter les lignes connectées</span>
+<span class="hl-cmd">pjsips show aors</span>
+<span class="hl-cmd">pjsips list aors</span>
+
+<span class="hl-comment"># Consulter les appels en cours</span>
+<span class="hl-cmd">pjsip show channels</span></pre>
+    </div>
+
+    <p>Voici un aperçu des commandes :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 7.png</span></div></div>
+    <div class="screenshot-caption">Lignes connectées</div>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 8.png</span></div></div>
+    <div class="screenshot-caption">Appels en cours</div>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 9.png</span></div></div>
+    <div class="screenshot-caption">Listes des utilisateurs paramétrés</div>
+
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 10.png</span></div></div>
+    <div class="screenshot-caption">Listes des lignes</div>
+  </div>
+
+  <!-- 4. WIRESHARK -->
+  <div class="wp-section" id="wireshark">
+    <h2><span class="step-num">4</span> Analyse d'un appel avec Wireshark</h2>
+    <p>Depuis un poste Windows, nous avons lancé une capture Wireshark en filtrant l'adresse IP de notre serveur pour voir les trames réseau.</p>
+
+    <h3>a. Lancement de l'appel</h3>
+    <p>L'image ci-dessous a été capturée lors d'un lancement d'appel avec Linphone vers un téléphone :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 11.png</span></div></div>
+    <div class="screenshot-caption">Lancement d'appel depuis Linphone</div>
+    <p>Le protocole SIP/SDP envoie une requête <strong>INVITE</strong> à notre serveur pour établir une session de communication. Notre serveur répond par un <strong>ACK</strong> pour confirmer la requête et autoriser l'échange.</p>
+
+    <h3>b. Décrochage de l'appel</h3>
+    <p>L'image ci-dessous a été capturée lors du décrochage :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 12.png</span></div></div>
+    <p>On peut voir 2 protocoles supplémentaires :</p>
+    <ul>
+      <li><strong>RTP</strong> (Real time Transport Protocol) : conçu pour transporter des données audio/vidéo.</li>
+      <li><strong>STUN</strong> (Simple Traversal of UDP through NATs) : le softphone envoie une requête au serveur STUN pour obtenir son adresse IP publique. Le serveur répond, ce qui permet au client de configurer sa session de communication.</li>
+    </ul>
+
+    <h3>c. Fin de communication</h3>
+    <p>Sur l'image ci-dessous, on peut voir une fin de session de communication avec la requête <strong>BYE</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 13.png</span></div></div>
+  </div>
+
+  <!-- 5. ANALYSE DES MESSAGES -->
+  <div class="wp-section" id="messages">
+    <h2><span class="step-num">5</span> Analyse des messages</h2>
+    <p>Dans un premier temps, nous devons configurer la messagerie vocale sur les 3 utilisateurs : se rendre dans un poste configuré puis aller dans l'onglet <strong>boîte vocale</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 14.png</span></div></div>
+
+    <p>Cocher les boutons selon la capture ci-après :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 15.png</span></div></div>
+
+    <h3>a. Temps de réponse à 10 secondes</h3>
+    <p>La messagerie doit être activée après un temps de non-réponse de 10 secondes. Dans l'onglet avancé, le paramètre temps de sonnerie doit être mis sur 10 :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 16.png</span></div></div>
+
+    <h4>A - Consulter la messagerie</h4>
+    <p>Pour consulter les messages sur le téléphone, composer la combinaison de touches suivante : <code>*97</code></p>
+    <p>Il sera alors possible de configurer les annonces, un mot de passe et de consulter les messages vocaux. Pour ce faire, aller sur un poste, onglet Boîte vocale, et l'activer.</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 17.png</span></div></div>
+
+    <p>Ici nous pouvons voir les messages sur le serveur avec l'extension <code>ulaw</code> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 18.png</span></div></div>
+
+    <p>On peut voir également que chaque utilisateur a un message sur sa boîte vocale avec la commande :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-comment"># Sur le serveur</span>
+<span class="hl-cmd">asterisk</span> <span class="hl-flag">-rvvv</span>
+<span class="hl-cmd">voicemail show users</span></pre>
+    </div>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 19.png</span></div></div>
+
+    <p>Sur le serveur, des messages apparaissent au moment où l'on laisse un message : <code>vm-intro.ulaw</code>, <code>beep.ulaw</code> au moment où l'on doit parler, et <code>goodbye.ulaw</code> pour la fin du message :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 20.png</span></div></div>
+
+    <p>Les extensions des fichiers vocaux laissées dans la boîte vocale du destinataire sont en <code>.wav</code> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 21.png</span></div></div>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 22.png</span></div></div>
+    <p>Il y a également un fichier <code>.txt</code> associé au message vocal.</p>
+
+    <h4>B - Déplacement d'anciens messages dans les nouveaux messages</h4>
+    <p>Pour déplacer un ancien message vers la boîte vocale d'un utilisateur comme nouveau message, se rendre dans <code>/var/spool/asterisk/voicemail/device/1011/Old</code> (correspond au dossier du poste 1011). On peut ensuite copier l'ancien message vers le dossier <code>INBOX</code>, comme sur l'image ci-dessous (l'ancien message a d'abord été renommé pour distinguer la manipulation) :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — déplacement vers INBOX ]<span class="src-hint">image 22.png (réutilisée)</span></div></div>
+
+    <h4>C - Déplacer le message vocal d'un utilisateur A vers un utilisateur B</h4>
+    <p>La manipulation peut s'effectuer sur le téléphone : composer <code>*97</code> → touche 1 pour écouter un nouveau message → touche 8 pour le transférer à un autre utilisateur → touche 1 puis rentrer le numéro de poste sur lequel transférer le message → touche 2 pour l'envoyer tel quel.</p>
+    <p>Voici les logs sur le serveur :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — logs serveur ]<span class="src-hint">image 23.png</span></div></div>
+
+    <h4>D - Scénario d'attaque</h4>
+    <p>Un attaquant pourrait enregistrer un message audio à l'aide d'un logiciel comme Audacity, puis déposer le fichier <code>.wav</code> dans le dossier correspondant. Le format doit cependant correspondre aux propriétés des autres enregistrements sur le serveur :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — propriétés du fichier ]<span class="src-hint">image 21.png (réutilisée)</span></div></div>
+    <p>L'extension et les caractéristiques du fichier doivent être identiques en termes de fréquence et de bit — ici 16 bits et une fréquence de 8000 Hz.</p>
+    <p>Sur le poste 1010, le fichier audio malveillant a donc été injecté. L'utilisateur est désormais capable d'écouter le message sur sa boîte vocale en consultant sa messagerie :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer — message injecté écouté ]<span class="src-hint">image 24.png</span></div></div>
+
+    <div class="callout vuln">
+      <span class="callout-icon">⚡</span>
+      <div>Un attaquant doit au préalable avoir un accès root sur le serveur pour effectuer cette attaque.</div>
+    </div>
+  </div>
+
+  <!-- 6. ANNONCES -->
+  <div class="wp-section" id="annonces">
+    <h2><span class="step-num">6</span> Configuration des annonces</h2>
+    <p>Dans un premier temps, choisir un son préenregistré ou en créer un soi-même. Se rendre dans <strong>Administrateur → Enregistrements systèmes</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 25.png</span></div></div>
+
+    <p>Choisir un nom significatif et attribuer un son dans le menu déroulant « Ajouter un enregistrement système » (pour simplifier, un son déjà présent est utilisé) :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 26.png</span></div></div>
+
+    <p>Une fois effectué, aller dans <strong>Applications → Annonces</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 27.png</span></div></div>
+
+    <p>Créer une annonce puis ajouter une description, l'enregistrement créé au préalable et une destination (par exemple un poste qui prendra en charge l'appel) :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 28.png</span></div></div>
+    <p>Ici, le transfert a été choisi vers un poste pour les tests.</p>
+  </div>
+
+  <!-- 7. MESSAGE D'ALERTE -->
+  <div class="wp-section" id="alerte">
+    <h2><span class="step-num">7</span> Configurer un message d'alerte</h2>
+    <p>Pour configurer une alerte diffusée automatiquement sur toutes les extensions configurées, aller dans <strong>Applications → Téléavertissement et intercom</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 29.png</span></div></div>
+
+    <p>Les paramètres importants à renseigner sont :</p>
+    <ul>
+      <li>Téléavertissement du poste : <code>1015</code>, permettant de composer le numéro pour la diffusion.</li>
+      <li>Une description.</li>
+      <li>La liste des dispositifs recevant l'alerte (ici les 3 postes).</li>
+      <li>Une tonalité d'alerte préconfigurée ou personnalisée.</li>
+      <li>Forcer même si le téléphone est occupé.</li>
+    </ul>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 30.png</span></div></div>
+    <p>En composant le 1015 sur le téléphone, tous les autres téléphones sonnent en même temps pour diffuser l'alerte.</p>
+  </div>
+
+  <!-- 8. IVR -->
+  <div class="wp-section" id="ivr">
+    <h2><span class="step-num">8</span> Configuration d'un standard automatique (IVR)</h2>
+    <p>Aller dans l'onglet <strong>Applications → IVR</strong> puis créer un IVR :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 31.png</span></div></div>
+
+    <p>Dans l'option « Announcement », choisir le son créé précédemment, par exemple pour le message d'accueil :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 32.png</span></div></div>
+    <p>Les autres options peuvent être laissées par défaut.</p>
+
+    <p>Dans la partie « IVR Entries », il faut 3 choix possibles lorsque l'utilisateur compose le numéro parmi 3 extensions : digits 1, 2 et 3, sur 3 postes créés pour simplifier les tests. L'option « Invalid Destination » avertit l'utilisateur que son choix est invalide, le redirigeant vers le message d'accueil, et « Terminate Call » est réglé sur « Hangup » :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 33.png</span></div></div>
+
+    <p>Ensuite, aller dans <strong>Applications → Misc Application</strong> pour associer le numéro au standard :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 34.png</span></div></div>
+
+    <p>Il suffit de l'activer, de rentrer le <code>999</code> comme code à composer et de choisir la destination de l'IVR :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 35.png</span></div></div>
+    <p>En appelant le 999, les 3 choix redirigent vers les postes configurés.</p>
+  </div>
+
+  <!-- 9. CONFIGURATIONS AVANCÉES -->
+  <div class="wp-section" id="avancees">
+    <h2><span class="step-num">9</span> Configurations avancées</h2>
+
+    <h3>A - Salle de conférence</h3>
+    <p>Aller dans l'onglet <strong>Applications → Conferences</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 36.png</span></div></div>
+    <p>Informations importantes à renseigner :</p>
+    <ul>
+      <li>Conference number : <code>1500</code> — le numéro à composer.</li>
+      <li>Un nom significatif.</li>
+      <li>Join message : permet de définir un message audio.</li>
+    </ul>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 37.png</span></div></div>
+    <p>En appelant le 1500 sur un poste, l'utilisateur entre en mode conférence jusqu'à ce qu'un autre utilisateur rejoigne avec le même numéro.</p>
+
+    <h3>B - Appeler simultanément sur 3 postes</h3>
+    <p>Aller dans <strong>Applications → Ring Groups</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 38.png</span></div></div>
+    <p>Renseigner les champs suivants :</p>
+    <ol>
+      <li>La description du groupe.</li>
+      <li>Sélectionner la liste avec les 3 numéros de poste.</li>
+      <li>Possibilité de choisir une annonce.</li>
+      <li>Renseigner le standard pour rediriger l'appel en l'absence de réponse.</li>
+    </ol>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 39.png</span></div></div>
+
+    <h3>C - Renvoi en cas d'absence</h3>
+    <p>Aller dans les options avancées d'un poste. Dans le champ « Optional Destinations », l'option « No answer » permet d'effectuer un renvoi d'appel (le standard a été sélectionné) :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 40.png</span></div></div>
+
+    <h3>D - Configurer la fonction Follow-me</h3>
+    <p>Aller dans l'onglet <strong>Applications → Follow me</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 41.png</span></div></div>
+    <p>Activer sur les postes souhaités :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 42.png</span></div></div>
+
+    <h3>E - Bilan des communications</h3>
+    <p>Le bilan des communications se trouve dans <strong>Reports → CDR Reports</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 43.png</span></div></div>
+    <p>Pour sortir un bilan de communication par utilisateur, cocher l'option « CallerID Name » et renseigner le champ avec le nom d'un utilisateur :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 44.png</span></div></div>
+    <p>On peut voir plusieurs paramètres comme la date de l'appel, la durée et si l'utilisateur a répondu ou non.</p>
+  </div>
+
+  <!-- 10. SÉCURISATION PORT SIP -->
+  <div class="wp-section" id="securisation">
+    <h2><span class="step-num">10</span> Changer le port SIP par défaut pour sécuriser les appels</h2>
+    <p>Aller dans l'onglet <strong>Paramètres → Paramètres SIP d'Asterisk</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 45.png</span></div></div>
+
+    <p>Dans l'onglet UDP, changer le paramètre « Port to Listen On » à <code>3654</code> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 46.png</span></div></div>
+
+    <p>Appliquer la configuration et revenir sur la CLI du serveur pour redémarrer Asterisk :</p>
+    <div class="code-block">
+      <div class="code-bar"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">copier</button></div>
+<pre><span class="hl-cmd">fwconsole restart</span> <span class="hl-comment"># en root</span></pre>
+    </div>
+
+    <p>Sur le téléphone, changer également le port dans l'onglet Account, paramètre « Port de SIP Server » :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 47.png</span></div></div>
+  </div>
+
+  <!-- 11. TRUNK SIP -->
+  <div class="wp-section" id="trunk">
+    <h2><span class="step-num">11</span> Réalisation du Trunk SIP</h2>
+    <p>Aller dans l'onglet <strong>Connectivity → Trunks</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 48.png</span></div></div>
+
+    <p>Remplir les champs suivants :</p>
+    <ol>
+      <li>Trunk Name</li>
+      <li>Outbound CallerID : permet d'afficher le nom de celui qui appelle sur le poste distant.</li>
+      <li>CID Options : autoriser tous les CID.</li>
+      <li>Maximum channels : 10, pour 10 communications simultanées.</li>
+    </ol>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 49.png</span></div></div>
+
+    <p>Aller dans l'onglet <strong>pjsip Settings</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 50.png</span></div></div>
+    <ol>
+      <li>Désactiver l'authentification pour les tests, afin de simplifier la configuration.</li>
+      <li>SIP Server : serveur distant à joindre.</li>
+      <li>SIP Server Port : <code>3654</code>.</li>
+      <li>Context : laisser par défaut.</li>
+      <li>Transport : UDP.</li>
+    </ol>
+
+    <h3>Créer une route pour acheminer le trafic</h3>
+    <p>Les manipulations ayant été réalisées dans le même réseau, il n'est pas nécessaire de configurer d'Inbound Routes. Créer une route dans <strong>Connectivity → Outbound Routes</strong> :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 51.png</span></div></div>
+
+    <p>Remplir les champs suivants :</p>
+    <ol>
+      <li>Route Name</li>
+      <li>Time Match Time Zone : sur Paris.</li>
+      <li>Time Match Time Group : Permanent Route.</li>
+      <li>Trunk Sequence for Matched Routes : renseigner le trunk précédemment créé.</li>
+    </ol>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 52.png</span></div></div>
+
+    <p>Aller dans l'onglet <strong>Dial Patterns</strong>, qui permet de définir un préfixe : <code>0</code> à composer avant le numéro distant, et <code>XXXX</code> correspondant aux 4 chiffres à composer :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 53.png</span></div></div>
+
+    <p>Le trunk est désormais fonctionnel. Pour tester, le numéro <code>01010</code> a été composé :</p>
+    <div class="screenshot"><div class="screenshot-placeholder">[ Capture à insérer ]<span class="src-hint">image 54.png</span></div></div>
+
+    <div class="result-section">
+      <div class="result-label">// résultat attendu</div>
+      <div class="result-value">L'établissement de la connexion est visible dans l'onglet CDR Reports : le trunk SIP achemine correctement le trafic vers le poste distant.</div>
+    </div>
+  </div>
+
+  <!-- POINTS D'ATTENTION -->
+  <div class="wp-section">
+    <h2><span class="step-num">✓</span> Points d'attention & retour d'expérience</h2>
+    <div class="takeaways">
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Le format exact des fichiers audio (fréquence, bits) doit correspondre à celui des enregistrements existants sur le serveur pour qu'un fichier déposé manuellement dans une boîte vocale soit lisible — un bon exemple concret de ce qu'un accès root permettrait à un attaquant.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>Changer le port SIP par défaut (5060) est une mesure simple mais efficace pour réduire la surface d'attaque exposée sur un serveur de téléphonie accessible depuis l'extérieur.</div>
+      </div>
+      <div class="takeaway">
+        <span class="takeaway-icon">→</span>
+        <div>L'analyse Wireshark permet de bien visualiser le cycle de vie SIP (INVITE/ACK), l'établissement du flux média (RTP/STUN) et la fin de session (BYE) — utile pour diagnostiquer des problèmes de qualité d'appel ou de NAT.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-writeups">
+    <span></span>
+    <a href="../index.html#procedures">↑ Toutes les procédures</a>
+    <span></span>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  Bertrand VEY © 2026 &nbsp;·&nbsp; <span style="color:var(--green)">~/procedures/telephonie-freepbx-asterisk</span><br>
+  Réalisé avec Titouan Tupinier — BUT3, 2025/2026, Groupe 2
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'copié ✓';
+      setTimeout(() => btn.textContent = 'copier', 1800);
+    });
+  }
+</script>
+</body>
+</html>
